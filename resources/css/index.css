@@ -1,5 +1,9 @@
 @import "leaflet/dist/leaflet.css";
 
+.leaflet-map-picker {
+    z-index: 10;
+}
+
 .leaflet-tile-selector {
     background-color: white;
     border-radius: 4px;

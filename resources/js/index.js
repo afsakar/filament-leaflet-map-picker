@@ -21,6 +21,11 @@ export default function leafletMapPicker({ location, config }) {
             tileProvider: 'openstreetmap',
             customTiles: [],
             customMarker: null,
+            searchButtonLabel: '',
+            searchQuery: '',
+            localSearchResults: [],
+            isSearching: false,
+            searchTimeout: null,
         },
 
         tileProviders: {
@@ -69,13 +74,16 @@ export default function leafletMapPicker({ location, config }) {
         init: function () {
             this.location = location
             this.config = { ...this.config, ...config }
+            this.searchQuery = ''
+            this.localSearchResults = []
+            this.isSearching = false
 
             if (this.config.customTiles && Object.keys(this.config.customTiles).length > 0) {
                 this.tileProviders = { ...this.tileProviders, ...this.config.customTiles }
             }
 
             this.initMap()
-            this.$watch('location', (value) => this.updateMapFromAlpine())
+            this.$watch('location', (value) => this.updateMapFromAlpine());
         },
 
         initMap: function () {
@@ -140,8 +148,99 @@ export default function leafletMapPicker({ location, config }) {
             }
 
             this.addLocationButton();
-
+            this.addSearchButton();
             this.addTileSelectorControl();
+        },
+
+        addSearchButton: function () {
+            const searchControl = L.Control.extend({
+                options: {
+                    position: 'topleft'
+                },
+                onAdd: (map) => {
+                    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                    const button = L.DomUtil.create('a', 'search-button', container);
+                    button.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    `;
+                    button.title = this.config.searchButtonLabel || 'Search Location';
+                    button.href = '#';
+                    button.role = 'button';
+                    button.style.display = 'flex';
+                    button.style.alignItems = 'center';
+                    button.style.justifyContent = 'center';
+                    button.style.width = '30px';
+                    button.style.height = '30px';
+                    button.setAttribute('x-tooltip.raw', this.config.searchButtonLabel || 'Search Location');
+        
+                    L.DomEvent.on(button, 'click', (e) => {
+                        L.DomEvent.preventDefault(e);
+                        this.$dispatch('open-modal', { id: 'location-search-modal' });
+                    });
+        
+                    return container;
+                }
+            });
+        
+            this.map.addControl(new searchControl());
+        },
+
+        debounceSearch: function() {
+            if (this.searchTimeout) {
+                clearTimeout(this.searchTimeout);
+            }
+            
+            if (!this.searchQuery || this.searchQuery.length < 3) {
+                this.localSearchResults = [];
+                this.isSearching = false;
+                return;
+            }
+            
+            this.isSearching = true;
+            this.searchTimeout = setTimeout(() => {
+                this.searchLocationFromModal(this.searchQuery);
+            }, 500);
+        },
+
+        searchLocationFromModal: function(query) {
+            if (!query || query.length < 3) {
+                this.isSearching = false;
+                return;
+            }
+            
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8`)
+                .then(response => response.json())
+                .then(data => {
+                    this.localSearchResults = data;
+                    this.isSearching = false;
+                })
+                .catch(error => {
+                    console.error('Konum arama hatası:', error);
+                    this.isSearching = false;
+                });
+        },
+        
+        selectLocationFromModal: function(result) {
+            const lat = parseFloat(result.lat);
+            const lng = parseFloat(result.lon);
+            
+            this.map.setView([lat, lng], 15);
+            
+            if (this.marker) {
+                this.marker.setLatLng([lat, lng]);
+            } else {
+                this.marker = L.marker([lat, lng]).addTo(this.map);
+            }
+
+            this.lat = lat;
+            this.lng = lng;
+            
+            this.localSearchResults = [];
+            this.searchQuery = '';
+
+            this.$dispatch('close-modal', { id: 'location-search-modal' });
         },
 
         setTileLayer: function(providerName) {
@@ -214,6 +313,7 @@ export default function leafletMapPicker({ location, config }) {
                     `;
                     button.title = this.config.myLocationButtonLabel;
                     button.href = '#';
+                    button.role = 'button';
                     button.style.display = 'flex';
                     button.style.alignItems = 'center';
                     button.style.justifyContent = 'center';

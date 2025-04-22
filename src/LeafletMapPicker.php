@@ -27,7 +27,6 @@ class LeafletMapPicker extends Field
 
     protected array | Closure $customTiles = [];
 
-    // Yeni eklenen marker icon path özellikleri
     protected string | Closure $markerIconPath = '';
 
     protected string | Closure $markerShadowPath = '';
