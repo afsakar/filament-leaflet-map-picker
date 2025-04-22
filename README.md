@@ -19,7 +19,7 @@ A Filament Forms component that provides an interactive Leaflet map for selectin
 - Custom tile layer support
 - Custom marker configuration
 
-![Screenshot](art/sc-default.png "Default")
+![Screenshot](https://github.com/afsakar/filament-leaflet-map-picker/blob/main/art/sc-default.png "Default")
 
 ## Installation
 
@@ -121,13 +121,13 @@ LeafletMapPicker::make('location')
 ## Screenshots
 
 Default:
-![Screenshot](art/sc-default.png "Default")
+![Screenshot](https://github.com/afsakar/filament-leaflet-map-picker/blob/main/art/sc-default.png "Default")
 
 Custom Marker:
-![Screenshot](art/sc-custom-marker.png "Custom Marker")
+![Screenshot](https://github.com/afsakar/filament-leaflet-map-picker/blob/main/art/sc-custom-marker.png "Custom Marker")
 
 Custom Tile:
-![Screenshot](art/sc-custom-tile.png "Custom Tile")
+![Screenshot](https://github.com/afsakar/filament-leaflet-map-picker/blob/main/art/sc-custom-tile.png "Custom Tile")
 
 ## Testing
 
