@@ -4,6 +4,8 @@
 .vscode
 build
 composer.lock
+yarn.lock
+package.lock
 coverage
 docs
 node_modules

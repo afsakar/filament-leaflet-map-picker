@@ -1,29 +1,27 @@
 {
-    "name": ":vendor_slug/:package_slug",
-    "description": ":package_description",
+    "name": "afsakar/filament-leaflet-map-picker",
+    "description": "A Filament Forms component that provides an interactive Leaflet map for selecting and storing geographical coordinates.",
     "keywords": [
-        ":vendor_name",
+        "afsakar",
         "laravel",
-        ":package_slug"
+        "filament-leaflet-map-picker"
     ],
-    "homepage": "https://github.com/:vendor_slug/:package_slug",
+    "homepage": "https://github.com/afsakar/filament-leaflet-map-picker",
     "support": {
-        "issues": "https://github.com/:vendor_slug/:package_slug/issues",
-        "source": "https://github.com/:vendor_slug/:package_slug"
+        "issues": "https://github.com/afsakar/filament-leaflet-map-picker/issues",
+        "source": "https://github.com/afsakar/filament-leaflet-map-picker"
     },
     "license": "MIT",
     "authors": [
         {
-            "name": ":author_name",
-            "email": "author@domain.com",
+            "name": "Azad Furkan ŞAKAR",
+            "email": "afsakarr@gmail.com",
             "role": "Developer"
         }
     ],
     "require": {
         "php": "^8.1",
-        "filament/filament": "^3.0",
         "filament/forms": "^3.0",
-        "filament/tables": "^3.0",
         "spatie/laravel-package-tools": "^1.15.0"
     },
     "require-dev": {
@@ -41,21 +39,26 @@
     },
     "autoload": {
         "psr-4": {
-            "VendorName\\Skeleton\\": "src/",
-            "VendorName\\Skeleton\\Database\\Factories\\": "database/factories/"
+            "Afsakar\\LeafletMapPicker\\": "src/",
+            "Afsakar\\LeafletMapPicker\\Database\\Factories\\": "database/factories/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "VendorName\\Skeleton\\Tests\\": "tests/"
+            "Afsakar\\LeafletMapPicker\\Tests\\": "tests/"
         }
     },
     "scripts": {
         "post-autoload-dump": "@php ./vendor/bin/testbench package:discover --ansi",
-        "analyse": "vendor/bin/phpstan analyse",
+        "phpstan": "vendor/bin/phpstan analyse --error-format=github --memory-limit=1G",
         "test": "vendor/bin/pest",
         "test-coverage": "vendor/bin/pest --coverage",
-        "format": "vendor/bin/pint"
+        "lint": "vendor/bin/pint -v",
+        "checks": [
+            "@lint",
+            "@phpstan",
+            "@test"
+        ]
     },
     "config": {
         "sort-packages": true,
@@ -67,10 +70,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "VendorName\\Skeleton\\SkeletonServiceProvider"
+                "Afsakar\\LeafletMapPicker\\LeafletMapPickerServiceProvider"
             ],
             "aliases": {
-                "Skeleton": "VendorName\\Skeleton\\Facades\\Skeleton"
+                "LeafletMapPicker": "Afsakar\\LeafletMapPicker\\Facades\\LeafletMapPicker"
             }
         }
     },

@@ -1,1 +1,45 @@
-@import '../../vendor/filament/filament/resources/css/theme.css';
+@import "leaflet/dist/leaflet.css";
+
+.leaflet-tile-selector {
+    background-color: white;
+    border-radius: 4px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    padding: 8px;
+    z-index: 15;
+}
+
+.leaflet-tile-selector select {
+    min-width: 150px;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 14px;
+    color: #333;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+    cursor: pointer;
+}
+
+.leaflet-tile-selector select:focus {
+    outline: none;
+    border-color: var(--primary-600);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+}
+
+.leaflet-tile-selector select:hover {
+    border-color: var(--gray-500);
+}
+
+.leaflet-tile-selector label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #4b5563;
+}
