@@ -7,7 +7,6 @@ A Filament Forms component that provides an interactive Leaflet map for selectin
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/afsakar/filament-leaflet-map-picker/fix-php-code-styling.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/afsakar/filament-leaflet-map-picker/actions?query=workflow%3A"Fix+PHP+code+styling"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/afsakar/filament-leaflet-map-picker.svg?style=flat-square)](https://packagist.org/packages/afsakar/filament-leaflet-map-picker)
 
-
 ## Features
 
 - Interactive map for location selection
@@ -20,6 +19,8 @@ A Filament Forms component that provides an interactive Leaflet map for selectin
 - Custom tile layer support
 - Custom marker configuration
 
+![Screenshot](art/sc-default.png "Default")
+
 ## Installation
 
 You can install the package via composer:
@@ -28,6 +29,43 @@ You can install the package via composer:
 composer require afsakar/filament-leaflet-map-picker
 
 php artisan vendor:publish --tag="filament-leaflet-map-picker-assets"
+```
+
+### Database Migration
+
+Create a column in your table to store the location data. You can use a `text` or `json` column type:
+
+```php
+Schema::create('properties', function (Blueprint $table) {
+    $table->id();
+    // Other columns
+    $table->text('location')->nullable(); // Stores coordinates as JSON string
+    // OR
+    $table->json('location')->nullable(); // Alternative approach
+    $table->timestamps();
+});
+```
+
+### Preparing the models
+
+To use the LeafletMapPicker component, you need to prepare your database and model to store geographical coordinates. The component stores location data as a JSON string in the format `[lat, lng]`.
+
+```php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Property extends Model
+{
+    protected $fillable = [
+        // Other fillable fields
+        'location',
+    ];
+
+    protected $casts = [
+        'location' => 'array',
+    ];
+}
 ```
 
 You can publish the lang files with:
@@ -60,7 +98,7 @@ LeafletMapPicker::make('location')
     ->draggable() // default true
     ->clickable() // default true
     ->myLocationButtonLabel('Go to My Location')
-    ->tileProvider('openstreetmap')
+    ->tileProvider('openstreetmap') // default options: openstreetmap, google, googleSatellite, googleTerrain, googleHybrid, esri
     ->customTiles([
         'mapbox' => [
             'url' => 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}',
@@ -79,6 +117,17 @@ LeafletMapPicker::make('location')
         'popupAnchor' => [0, -38]
     ])
 ```
+
+## Screenshots
+
+Default:
+![Screenshot](art/sc-default.png "Default")
+
+Custom Marker:
+![Screenshot](art/sc-custom-marker.png "Custom Marker")
+
+Custom Tile:
+![Screenshot](art/sc-custom-tile.png "Custom Tile")
 
 ## Testing
 
