@@ -1,4 +1,4 @@
-# LeafletMapPicker Component
+# FilamentPHP LeafletJS Map Picker
 
 A Filament Forms component that provides an interactive Leaflet map for selecting and storing geographical coordinates.
 
@@ -6,6 +6,8 @@ A Filament Forms component that provides an interactive Leaflet map for selectin
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/afsakar/filament-leaflet-map-picker/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/afsakar/filament-leaflet-map-picker/actions?query=workflow%3Arun-tests+branch%3Amain)
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/afsakar/filament-leaflet-map-picker/fix-php-code-styling.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/afsakar/filament-leaflet-map-picker/actions?query=workflow%3A"Fix+PHP+code+styling"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/afsakar/filament-leaflet-map-picker.svg?style=flat-square)](https://packagist.org/packages/afsakar/filament-leaflet-map-picker)
+
+![Banner](art/leaflet-js-banner.png)
 
 ## Features
 
