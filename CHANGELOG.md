@@ -2,6 +2,12 @@
 
 All notable changes to `filament-leaflet-map-picker` will be documented in this file.
 
+## v1.1.1 - 2025-04-23
+
+Fix: Location search result list height
+
+**Full Changelog**: https://github.com/afsakar/filament-leaflet-map-picker/compare/v1.1.0...v1.1.1
+
 ## v1.1.0 - 2025-04-22
 
 ### What's Changed
