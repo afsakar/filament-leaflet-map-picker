@@ -26,6 +26,8 @@ export default function leafletMapPicker({ location, config }) {
             localSearchResults: [],
             isSearching: false,
             searchTimeout: null,
+            is_disabled: false,
+            showTileControl: true,
         },
 
         tileProviders: {
@@ -147,9 +149,14 @@ export default function leafletMapPicker({ location, config }) {
                 });
             }
 
-            this.addLocationButton();
-            this.addSearchButton();
-            this.addTileSelectorControl();
+            if (! this.config.is_disabled) {
+                this.addLocationButton();
+                this.addSearchButton();
+            }
+
+            if (this.config.showTileControl) {
+                this.addTileSelectorControl();
+            }
         },
 
         addSearchButton: function () {
@@ -349,12 +356,17 @@ export default function leafletMapPicker({ location, config }) {
                         this.lng = latLng.lng;
                     },
                     (error) => {
+                        if (window.location.protocol !== 'https:') {
+                            new FilamentNotification().title('Need\'s HTTPS').body('Secure connection (HTTPS) required to access location information').danger().send();
+                            return;
+                        }
+
+                        new FilamentNotification().title('Error').body('Could not get location. Please check console errors').danger().send();
                         console.error('Error getting location:', error);
-                        alert('Konum alınamadı. Lütfen konum izinlerini kontrol edin.');
                     }
                 );
             } else {
-                alert('Tarayıcınız konum hizmetlerini desteklemiyor.');
+                new FilamentNotification().title('No Browser Support').body('Your browser does not support location services').danger().send();
             }
         },
 

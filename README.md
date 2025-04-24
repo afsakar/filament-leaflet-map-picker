@@ -100,6 +100,8 @@ LeafletMapPicker::make('location')
     ->draggable() // default true
     ->clickable() // default true
     ->myLocationButtonLabel('Go to My Location')
+    ->hideTileControl() // default false
+    ->readOnly() // default false, when you set this to true, the marker will not be draggable or clickable and current location and search location buttons will be hidden
     ->tileProvider('openstreetmap') // default options: openstreetmap, google, googleSatellite, googleTerrain, googleHybrid, esri
     ->customTiles([
         'mapbox' => [

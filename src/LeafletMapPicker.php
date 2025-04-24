@@ -4,11 +4,14 @@ namespace Afsakar\LeafletMapPicker;
 
 use Closure;
 use Exception;
+use Filament\Forms\Components\Concerns\CanBeReadOnly;
 use Filament\Forms\Components\Field;
 use JsonException;
 
 class LeafletMapPicker extends Field
 {
+    use CanBeReadOnly;
+
     protected string $view = 'filament-leaflet-map-picker::leaflet-map-picker';
 
     protected string | Closure $height = '400px';
@@ -31,6 +34,8 @@ class LeafletMapPicker extends Field
 
     protected string | Closure $markerShadowPath = '';
 
+    protected bool $showTileControl = false;
+
     private int $precision = 8;
 
     protected ?array $customMarker = null;
@@ -50,7 +55,20 @@ class LeafletMapPicker extends Field
         'customMarker' => null,
         'markerIconPath' => '',
         'markerShadowPath' => '',
+        'showTaleControl' => false,
     ];
+
+    public function hideTileControl(): static
+    {
+        $this->showTileControl = false;
+
+        return $this;
+    }
+
+    public function getTileControlVisibility(): bool
+    {
+        return $this->evaluate($this->showTileControl);
+    }
 
     public function customMarker(array $config): static
     {
@@ -113,6 +131,10 @@ class LeafletMapPicker extends Field
 
     public function getDraggable(): bool
     {
+        if ($this->isDisabled || $this->isReadOnly) {
+            return false;
+        }
+
         return $this->evaluate($this->draggable);
     }
 
@@ -125,6 +147,10 @@ class LeafletMapPicker extends Field
 
     public function getClickable(): bool
     {
+        if ($this->isDisabled || $this->isReadOnly) {
+            return false;
+        }
+
         return $this->evaluate($this->clickable);
     }
 
@@ -219,6 +245,8 @@ class LeafletMapPicker extends Field
                 'markerIconPath' => $this->getMarkerIconPath(),
                 'markerShadowPath' => $this->getMarkerShadowPath(),
                 'map_type_text' => __('filament-leaflet-map-picker::leaflet-map-picker.map_type'),
+                'is_disabled' => $this->isDisabled() || $this->isReadOnly(),
+                'showTileControl' => $this->showTileControl,
             ]),
             JSON_THROW_ON_ERROR
         );
