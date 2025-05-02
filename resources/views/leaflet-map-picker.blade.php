@@ -20,7 +20,7 @@
             <div
                 x-ref="mapContainer"
                 class="leaflet-map-picker w-full relative"
-                style="height: {{ $getHeight() }}"
+                style="height: {{ $getHeight() }}; z-index: 1;"
             ></div>
 
             <div class="p-4 bg-gray-50 border-t border-gray-200 dark:bg-gray-700 dark:border-gray-600" x-show="lat !== null && lng !== null">
