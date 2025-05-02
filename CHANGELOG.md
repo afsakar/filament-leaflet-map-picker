@@ -2,6 +2,12 @@
 
 All notable changes to `filament-leaflet-map-picker` will be documented in this file.
 
+## v1.2.1 - 2025-05-02
+
+Fix map z-index problem
+
+**Full Changelog**: https://github.com/afsakar/filament-leaflet-map-picker/compare/v1.2.0...v1.2.1
+
 ## v1.2.0 - 2025-04-24
 
 Add read-only mode and tile control visibility
