@@ -84,6 +84,7 @@ php artisan vendor:publish --tag="filament-leaflet-map-picker-views"
 
 ## Usage
 
+### Form
 ```php
 use use Afsakar\LeafletMapPicker\LeafletMapPicker;
 
@@ -100,9 +101,44 @@ LeafletMapPicker::make('location')
     ->draggable() // default true
     ->clickable() // default true
     ->myLocationButtonLabel('Go to My Location')
-    ->hideTileControl() // default false
+    ->hideTileControl()
     ->readOnly() // default false, when you set this to true, the marker will not be draggable or clickable and current location and search location buttons will be hidden
     ->tileProvider('openstreetmap') // default options: openstreetmap, google, googleSatellite, googleTerrain, googleHybrid, esri
+    ->customTiles([
+        'mapbox' => [
+            'url' => 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}',
+            'options' => [
+                'attribution' => '&copy; <a href="https://www.mapbox.com/">Mapbox</a>',
+                'id' => 'mapbox/streets-v11',
+                'maxZoom' => 19,
+                'accessToken' => 'YOUR_MAPBOX_TOKEN',
+            ]
+        ]
+    ])
+    ->customMarker([
+        'iconUrl' => asset('pin-2.png'),
+        'iconSize' => [38, 38],
+        'iconAnchor' => [19, 38],
+        'popupAnchor' => [0, -38]
+    ])
+```
+
+### Infolist
+
+```php
+use use Afsakar\LeafletMapPicker\LeafletMapPickerEntry;
+
+// Basic usage
+LeafletMapPickerEntry::make('location')
+    ->label('Location')
+
+// Advanced usage with customization
+LeafletMapPickerEntry::make('location')
+    ->label('Property Location')
+    ->height('500px')
+    ->defaultLocation([41.0082, 28.9784])
+    ->tileProvider('openstreetmap') // default options: openstreetmap, google, googleSatellite, googleTerrain, googleHybrid, esri
+    ->hideTileControl()
     ->customTiles([
         'mapbox' => [
             'url' => 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}',
