@@ -2,6 +2,14 @@
 
 All notable changes to `filament-leaflet-map-picker` will be documented in this file.
 
+## v1.3.0 - 2025-05-09
+
+### What's Changed
+
+* feat(map-entry): add entry component and fix default visibility for tile control in picker component. by @afsakar in #2
+
+**Full Changelog**: https://github.com/afsakar/filament-leaflet-map-picker/compare/v1.2.1...v1.3.0
+
 ## v1.2.1 - 2025-05-02
 
 Fix map z-index problem
