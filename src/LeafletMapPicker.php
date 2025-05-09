@@ -34,7 +34,7 @@ class LeafletMapPicker extends Field
 
     protected string | Closure $markerShadowPath = '';
 
-    protected bool $showTileControl = false;
+    protected bool $showTileControl = true;
 
     private int $precision = 8;
 

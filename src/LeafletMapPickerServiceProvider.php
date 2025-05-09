@@ -53,7 +53,8 @@ class LeafletMapPickerServiceProvider extends PackageServiceProvider
         FilamentAsset::register(
             assets: [
                 Css::make('leaflet-map-picker', __DIR__ . '/../resources/dist/filament-leaflet-map-picker.css')->loadedOnRequest(),
-                AlpineComponent::make('leaflet-map-picker', __DIR__ . '/../resources/dist/filament-leaflet-map-picker.js'),
+                AlpineComponent::make('leaflet-map-picker', __DIR__ . '/../resources/dist/field.js'),
+                AlpineComponent::make('leaflet-map-picker-entry', __DIR__ . '/../resources/dist/entry.js'),
             ],
             package: 'afsakar/filament-leaflet-map-picker',
         );
