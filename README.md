@@ -86,7 +86,7 @@ php artisan vendor:publish --tag="filament-leaflet-map-picker-views"
 
 ### Form
 ```php
-use use Afsakar\LeafletMapPicker\LeafletMapPicker;
+use Afsakar\LeafletMapPicker\LeafletMapPicker;
 
 // Basic usage
 LeafletMapPicker::make('location')
@@ -126,7 +126,7 @@ LeafletMapPicker::make('location')
 ### Infolist
 
 ```php
-use use Afsakar\LeafletMapPicker\LeafletMapPickerEntry;
+use Afsakar\LeafletMapPicker\LeafletMapPickerEntry;
 
 // Basic usage
 LeafletMapPickerEntry::make('location')
