@@ -43,8 +43,12 @@ const defaultOptions = {
     }],
 }
 
-compile({
-    ...defaultOptions,
-    entryPoints: ['./resources/js/index.js'],
-    outfile: './resources/dist/filament-leaflet-map-picker.js',
+const components = ['field', 'entry']
+
+components.forEach((component) => {
+    compile({
+        ...defaultOptions,
+        entryPoints: [`./resources/js/${component}.js`],
+        outfile: `./resources/dist/${component}.js`,
+    })
 })
