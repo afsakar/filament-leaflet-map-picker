@@ -7,7 +7,7 @@ A Filament Forms component that provides an interactive Leaflet map for selectin
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/afsakar/filament-leaflet-map-picker/fix-php-code-styling.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/afsakar/filament-leaflet-map-picker/actions?query=workflow%3A"Fix+PHP+code+styling"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/afsakar/filament-leaflet-map-picker.svg?style=flat-square)](https://packagist.org/packages/afsakar/filament-leaflet-map-picker)
 
-![Banner](https://github.com/afsakar/filament-leaflet-map-picker/blob/main/art/leaflet-js-banner.png "Banner")
+![Banner](https://raw.githubusercontent.com/afsakar/filament-leaflet-map-picker/main/art/leaflet-js-banner.png "Banner")
 
 ## Features
 
@@ -21,7 +21,7 @@ A Filament Forms component that provides an interactive Leaflet map for selectin
 - Custom tile layer support
 - Custom marker configuration
 
-![Screenshot](https://github.com/afsakar/filament-leaflet-map-picker/blob/main/art/sc-default.png "Default")
+![Screenshot](https://raw.githubusercontent.com/afsakar/filament-leaflet-map-picker/main/art/sc-default.png "Default")
 
 ## Installation
 
@@ -161,13 +161,13 @@ LeafletMapPickerEntry::make('location')
 ## Screenshots
 
 Default:
-![Screenshot](https://github.com/afsakar/filament-leaflet-map-picker/blob/main/art/sc-default.png "Default")
+![Screenshot](https://raw.githubusercontent.com/afsakar/filament-leaflet-map-picker/main/art/sc-default.png "Default")
 
 Custom Marker:
-![Screenshot](https://github.com/afsakar/filament-leaflet-map-picker/blob/main/art/sc-custom-marker.png "Custom Marker")
+![Screenshot](https://raw.githubusercontent.com/afsakar/filament-leaflet-map-picker/main/art/sc-custom-marker.png "Custom Marker")
 
 Custom Tile:
-![Screenshot](https://github.com/afsakar/filament-leaflet-map-picker/blob/main/art/sc-custom-tile.png "Custom Tile")
+![Screenshot](https://raw.githubusercontent.com/afsakar/filament-leaflet-map-picker/main/art/sc-custom-tile.png "Custom Tile")
 
 ## Testing
 
