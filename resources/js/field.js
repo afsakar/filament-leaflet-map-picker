@@ -17,11 +17,11 @@ export default function leafletMapPicker({ location, config }) {
                 lng: 28.9784,
             },
             myLocationButtonLabel: '',
+            searchLocationButtonLabel: '',
             statePath: '',
             tileProvider: 'openstreetmap',
             customTiles: [],
             customMarker: null,
-            searchButtonLabel: '',
             searchQuery: '',
             localSearchResults: [],
             isSearching: false,
@@ -172,7 +172,7 @@ export default function leafletMapPicker({ location, config }) {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     `;
-                    button.title = this.config.searchButtonLabel || 'Search Location';
+                    button.title = this.config.searchLocationButtonLabel || 'Search Location';
                     button.href = '#';
                     button.role = 'button';
                     button.style.display = 'flex';
@@ -180,7 +180,7 @@ export default function leafletMapPicker({ location, config }) {
                     button.style.justifyContent = 'center';
                     button.style.width = '30px';
                     button.style.height = '30px';
-                    button.setAttribute('x-tooltip.raw', this.config.searchButtonLabel || 'Search Location');
+                    button.setAttribute('x-tooltip.raw', this.config.searchLocationButtonLabel || 'Search Location');
         
                     L.DomEvent.on(button, 'click', (e) => {
                         L.DomEvent.preventDefault(e);

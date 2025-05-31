@@ -26,6 +26,8 @@ class LeafletMapPicker extends Field
 
     protected string | Closure | null $myLocationButtonLabel = 'My Location';
 
+    protected string | Closure | null $searchLocationButtonLabel = 'Search Location';
+
     protected string | Closure $tileProvider = 'openstreetmap';
 
     protected array | Closure $customTiles = [];
@@ -50,6 +52,7 @@ class LeafletMapPicker extends Field
         'statePath' => '',
         'defaultZoom' => 13,
         'myLocationButtonLabel' => '',
+        'searchLocationButtonLabel' => '',
         'tileProvider' => 'openstreetmap',
         'customTiles' => [],
         'customMarker' => null,
@@ -177,6 +180,18 @@ class LeafletMapPicker extends Field
     {
         return $this->evaluate($this->myLocationButtonLabel);
     }
+    
+    public function searchLocationButtonLabel(string | Closure $searchLocationButtonLabel): static
+    {
+        $this->searchLocationButtonLabel = $searchLocationButtonLabel;
+
+        return $this;
+    }
+    
+    public function getSearchLocationButtonLabel(): string
+    {
+        return $this->evaluate($this->searchLocationButtonLabel);
+    }
 
     public function tileProvider(string | Closure $tileProvider): static
     {
@@ -239,6 +254,7 @@ class LeafletMapPicker extends Field
                 'statePath' => $this->getStatePath(),
                 'defaultZoom' => $this->getDefaultZoom(),
                 'myLocationButtonLabel' => $this->getMyLocationButtonLabel(),
+                'searchLocationButtonLabel' => $this->getSearchLocationButtonLabel(),
                 'tileProvider' => $this->getTileProvider(),
                 'customTiles' => $this->getCustomTiles(),
                 'customMarker' => $this->getCustomMarker(),
