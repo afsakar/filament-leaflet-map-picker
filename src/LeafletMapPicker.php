@@ -247,6 +247,7 @@ class LeafletMapPicker extends Field
                 'map_type_text' => __('filament-leaflet-map-picker::leaflet-map-picker.map_type'),
                 'is_disabled' => $this->isDisabled() || $this->isReadOnly(),
                 'showTileControl' => $this->showTileControl,
+                'searchButtonLabel' => __('filament-leaflet-map-picker::leaflet-map-picker.search_location'),
             ]),
             JSON_THROW_ON_ERROR
         );
