@@ -4,9 +4,9 @@
 >
     <div
         wire:ignore
-        ax-load
+        x-load
         x-load-css="[@js(\Filament\Support\Facades\FilamentAsset::getStyleHref('leaflet-map-picker', 'afsakar/filament-leaflet-map-picker'))]"
-        ax-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('leaflet-map-picker', 'afsakar/filament-leaflet-map-picker') }}"
+        x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('leaflet-map-picker', 'afsakar/filament-leaflet-map-picker') }}"
         x-data="leafletMapPicker({
             location: $wire.$entangle('{{ $getStatePath() }}'),
             config: {{ $getMapConfig() }},
