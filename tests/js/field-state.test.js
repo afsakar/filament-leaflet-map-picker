@@ -1,0 +1,94 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { createFieldState } from '../../resources/js/field-state.js';
+
+function createSubject(overrides = {}) {
+    const fieldState = createFieldState();
+
+    return {
+        ...fieldState,
+        location: null,
+        map: { panToCalls: [], panTo(value) { this.panToCalls.push(value); } },
+        marker: { setLatLngCalls: [], setLatLng(value) { this.setLatLngCalls.push(value); } },
+        lat: null,
+        lng: null,
+        lastValidCoordinates: null,
+        config: {
+            defaultLocation: { lat: 41.0082, lng: 28.9784 },
+        },
+        updateMapCalls: [],
+        updateMap(position, shouldPan) {
+            this.updateMapCalls.push({ position, shouldPan });
+            this.lat = position.lat;
+            this.lng = position.lng;
+        },
+        ...overrides,
+    };
+}
+
+test('setCoordinates writes canonical entangled state and skips panning', () => {
+    const subject = createSubject();
+
+    const result = subject.setCoordinates({ lat: '0', lng: '0' });
+
+    assert.equal(result, true);
+    assert.deepEqual(subject.location, { lat: 0, lng: 0 });
+    assert.deepEqual(subject.lastValidCoordinates, { lat: 0, lng: 0 });
+    assert.deepEqual(subject.updateMapCalls, [
+        { position: { lat: 0, lng: 0 }, shouldPan: false },
+    ]);
+});
+
+test('setCoordinates rejects invalid coordinates without mutating state', () => {
+    const subject = createSubject({
+        location: { lat: 1, lng: 2 },
+        lastValidCoordinates: { lat: 1, lng: 2 },
+    });
+
+    const result = subject.setCoordinates({ lat: 91, lng: 0 });
+
+    assert.equal(result, false);
+    assert.deepEqual(subject.location, { lat: 1, lng: 2 });
+    assert.deepEqual(subject.lastValidCoordinates, { lat: 1, lng: 2 });
+    assert.deepEqual(subject.updateMapCalls, []);
+});
+
+test('updateMapFromAlpine ignores invalid external state and equal coordinates', () => {
+    const subject = createSubject({
+        lastValidCoordinates: { lat: 41.0082, lng: 28.9784 },
+    });
+
+    subject.updateMapFromAlpine({ lat: 91, lng: 0 });
+    subject.updateMapFromAlpine({ lat: 41.0082, lng: 28.9784 });
+
+    assert.deepEqual(subject.lastValidCoordinates, { lat: 41.0082, lng: 28.9784 });
+    assert.deepEqual(subject.updateMapCalls, []);
+});
+
+test('updateMapFromAlpine pans only for a distinct valid external state', () => {
+    const subject = createSubject({
+        lastValidCoordinates: { lat: 41.0082, lng: 28.9784 },
+    });
+
+    subject.updateMapFromAlpine({ lat: '40.1', lng: '29.2' });
+
+    assert.deepEqual(subject.lastValidCoordinates, { lat: 40.1, lng: 29.2 });
+    assert.deepEqual(subject.updateMapCalls, [
+        { position: { lat: 40.1, lng: 29.2 }, shouldPan: true },
+    ]);
+});
+
+test('getCoordinates resolves entangled location, last valid fallback, then default', () => {
+    const subject = createSubject({
+        location: { lat: '40.5', lng: '29.5' },
+        lastValidCoordinates: { lat: 1, lng: 2 },
+    });
+
+    assert.deepEqual(subject.getCoordinates(), { lat: 40.5, lng: 29.5 });
+
+    subject.location = { lat: 91, lng: 0 };
+    assert.deepEqual(subject.getCoordinates(), { lat: 1, lng: 2 });
+
+    subject.lastValidCoordinates = null;
+    assert.deepEqual(subject.getCoordinates(), { lat: 41.0082, lng: 28.9784 });
+});

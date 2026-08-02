@@ -1,7 +1,11 @@
 import * as L from 'leaflet';
+import { createFieldState } from './field-state.js';
 
 export default function leafletMapPicker({ location, config }) {
+    const fieldState = createFieldState();
+
     return {
+        ...fieldState,
         map: null,
         marker: null,
         lat: null,
@@ -18,7 +22,10 @@ export default function leafletMapPicker({ location, config }) {
                 lng: 28.9784,
             },
             myLocationButtonLabel: '',
-            statePath: '',
+            searchModalId: 'location-search-modal',
+            geocoderEndpoint: 'https://nominatim.openstreetmap.org/search',
+            geolocationHighAccuracy: false,
+            geolocationTimeout: 10000,
             tileProvider: 'openstreetmap',
             customTiles: [],
             customMarker: null,
@@ -86,7 +93,7 @@ export default function leafletMapPicker({ location, config }) {
             }
 
             this.initMap()
-            this.$watch('location', (value) => this.updateMapFromAlpine());
+            this.$watch('location', (value) => this.updateMapFromAlpine(value));
         },
 
         initMap: function () {
@@ -187,7 +194,7 @@ export default function leafletMapPicker({ location, config }) {
         
                     L.DomEvent.on(button, 'click', (e) => {
                         L.DomEvent.preventDefault(e);
-                        this.$dispatch('open-modal', { id: 'location-search-modal' });
+                        this.$dispatch('open-modal', { id: this.config.searchModalId });
                     });
         
                     return container;
@@ -220,7 +227,7 @@ export default function leafletMapPicker({ location, config }) {
                 return;
             }
             
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8`)
+            fetch(`${this.config.geocoderEndpoint}?format=json&q=${encodeURIComponent(query)}&limit=8`)
                 .then(response => response.json())
                 .then(data => {
                     this.localSearchResults = data;
@@ -233,24 +240,14 @@ export default function leafletMapPicker({ location, config }) {
         },
         
         selectLocationFromModal: function(result) {
-            const lat = parseFloat(result.lat);
-            const lng = parseFloat(result.lon);
-            
-            this.map.setView([lat, lng], 15);
-            
-            if (this.marker) {
-                this.marker.setLatLng([lat, lng]);
-            } else {
-                this.marker = L.marker([lat, lng]).addTo(this.map);
+            if (!this.setCoordinates({ lat: result.lat, lng: result.lon })) {
+                return;
             }
-
-            this.lat = lat;
-            this.lng = lng;
             
             this.localSearchResults = [];
             this.searchQuery = '';
 
-            this.$dispatch('close-modal', { id: 'location-search-modal' });
+            this.$dispatch('close-modal', { id: this.config.searchModalId });
         },
 
         setTileLayer: function(providerName) {
@@ -353,10 +350,6 @@ export default function leafletMapPicker({ location, config }) {
                         };
 
                         this.setCoordinates(latLng);
-                        this.marker.setLatLng([latLng.lat, latLng.lng]);
-                        this.map.setView([latLng.lat, latLng.lng], 15);
-                        this.lat = latLng.lat;
-                        this.lng = latLng.lng;
                     },
                     (error) => {
                         if (window.location.protocol !== 'https:') {
@@ -366,6 +359,11 @@ export default function leafletMapPicker({ location, config }) {
 
                         new FilamentNotification().title('Error').body('Could not get location. Please check console errors').danger().send();
                         console.error('Error getting location:', error);
+                    },
+                    {
+                        enableHighAccuracy: this.config.geolocationHighAccuracy,
+                        timeout: this.config.geolocationTimeout,
+                        maximumAge: 0,
                     }
                 );
             } else {
@@ -375,82 +373,18 @@ export default function leafletMapPicker({ location, config }) {
 
         markerMoved: function (event) {
             const position = event.latLng.toJSON();
-            this.lat = position.lat;
-            this.lng = position.lng;
             this.setCoordinates(position);
-            this.marker.setLatLng([position.lat, position.lng]);
-            this.map.panTo([position.lat, position.lng]);
         },
 
-        updateMapFromAlpine: function () {
-            const location = this.getCoordinates();
-            const markerPosition = this.marker.getLatLng();
+        updateMap: function (position, shouldPan = true) {
+            this.marker.setLatLng([position.lat, position.lng]);
 
-            if (
-                !(
-                    location.lat === markerPosition.lat &&
-                    location.lng === markerPosition.lng
-                )
-            ) {
-                this.updateMap(location);
+            if (shouldPan) {
+                this.map.panTo([position.lat, position.lng]);
             }
-        },
 
-        updateMap: function (position) {
-            this.marker.setLatLng([position.lat, position.lng]);
-            this.map.panTo([position.lat, position.lng]);
             this.lat = position.lat;
             this.lng = position.lng;
-            this.lastValidCoordinates = position;
-        },
-
-        setCoordinates: function (position) {
-            this.lastValidCoordinates = position;
-            this.$wire.set(this.config.statePath, position);
-        },
-
-        getCoordinates: function () {
-            const location = this.normalizeCoordinates(this.$wire.get(this.config.statePath));
-
-            if (location !== null) {
-                return location;
-            }
-
-            return this.lastValidCoordinates ?? this.getDefaultCoordinates();
-        },
-
-        getDefaultCoordinates: function () {
-            return {
-                lat: this.config.defaultLocation.lat,
-                lng: this.config.defaultLocation.lng,
-            };
-        },
-
-        normalizeCoordinates: function (location) {
-            if (
-                location === null ||
-                typeof location !== 'object' ||
-                !Object.prototype.hasOwnProperty.call(location, 'lat') ||
-                !Object.prototype.hasOwnProperty.call(location, 'lng')
-            ) {
-                return null;
-            }
-
-            const lat = Number(location.lat);
-            const lng = Number(location.lng);
-
-            if (
-                !Number.isFinite(lat) ||
-                !Number.isFinite(lng) ||
-                lat < -90 ||
-                lat > 90 ||
-                lng < -180 ||
-                lng > 180
-            ) {
-                return null;
-            }
-
-            return { lat, lng };
         }
     }
 }

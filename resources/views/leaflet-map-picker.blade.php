@@ -31,8 +31,8 @@
                     </svg>
                     <p class="text-sm text-gray-700 dark:text-gray-200">
                         {{ __('filament-leaflet-map-picker::leaflet-map-picker.selected_locations') }}
-                        <span class="font-medium" x-text="lat ? lat.toFixed(6) : ''"></span>,
-                        <span class="font-medium" x-text="lng ? lng.toFixed(6) : ''"></span>
+                        <span class="font-medium" x-text="lat !== null ? lat.toFixed(6) : ''"></span>,
+                        <span class="font-medium" x-text="lng !== null ? lng.toFixed(6) : ''"></span>
                     </p>
                 </div>
             </div>
@@ -40,9 +40,9 @@
 
         <x-filament::modal
             slide-over
-            id="location-search-modal"
+            :id="$field->getId() . '-location-search-modal'"
             width="md"
-            x-on:open-modal.window="if ($event.detail.id === 'location-search-modal') searchQuery = ''; localSearchResults = []"
+            x-on:open-modal.window="if ($event.detail.id === config.searchModalId) searchQuery = ''; localSearchResults = []"
         >
             <x-slot name="heading">
                 {{ __('filament-leaflet-map-picker::leaflet-map-picker.search_location') }}
@@ -76,7 +76,7 @@
                             <li class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
                                 <button
                                     type="button"
-                                    @click="selectLocationFromModal(result); $dispatch('close-modal', { id: 'location-search-modal' })"
+                                    @click="selectLocationFromModal(result)"
                                     class="w-full text-left px-4 py-3 flex items-start gap-3"
                                 >
                                     <div class="flex-shrink-0 mt-0.5">
@@ -109,7 +109,7 @@
             </div>
 
             <x-slot name="footer">
-                <x-filament::button color="gray" @click="$dispatch('close-modal', { id: 'location-search-modal' })">
+                <x-filament::button color="gray" @click="$dispatch('close-modal', { id: config.searchModalId })">
                     {{ __('filament-leaflet-map-picker::leaflet-map-picker.cancel') }}
                 </x-filament::button>
             </x-slot>

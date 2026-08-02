@@ -28,6 +28,12 @@ class LeafletMapPicker extends Field
 
     protected string | Closure $tileProvider = 'openstreetmap';
 
+    protected string | Closure $geocoderEndpoint = 'https://nominatim.openstreetmap.org/search';
+
+    protected int | Closure $geolocationTimeout = 10000;
+
+    protected bool | Closure $geolocationHighAccuracy = false;
+
     protected array | Closure $customTiles = [];
 
     protected string | Closure $markerIconPath = '';
@@ -45,15 +51,18 @@ class LeafletMapPicker extends Field
             'lat' => 37.9106,
             'lng' => 40.2365,
         ],
-        'statePath' => '',
         'defaultZoom' => 13,
         'myLocationButtonLabel' => '',
+        'searchModalId' => '',
+        'geocoderEndpoint' => 'https://nominatim.openstreetmap.org/search',
+        'geolocationHighAccuracy' => false,
+        'geolocationTimeout' => 10000,
         'tileProvider' => 'openstreetmap',
         'customTiles' => [],
         'customMarker' => null,
         'markerIconPath' => '',
         'markerShadowPath' => '',
-        'showTaleControl' => false,
+        'showTileControl' => false,
     ];
 
     public function hideTileControl(): static
@@ -175,6 +184,42 @@ class LeafletMapPicker extends Field
         return $this->evaluate($this->tileProvider);
     }
 
+    public function geocoderEndpoint(string | Closure $geocoderEndpoint): static
+    {
+        $this->geocoderEndpoint = $geocoderEndpoint;
+
+        return $this;
+    }
+
+    public function getGeocoderEndpoint(): string
+    {
+        return $this->evaluate($this->geocoderEndpoint);
+    }
+
+    public function geolocationTimeout(int | Closure $geolocationTimeout): static
+    {
+        $this->geolocationTimeout = $geolocationTimeout;
+
+        return $this;
+    }
+
+    public function getGeolocationTimeout(): int
+    {
+        return $this->evaluate($this->geolocationTimeout);
+    }
+
+    public function geolocationHighAccuracy(bool | Closure $geolocationHighAccuracy = true): static
+    {
+        $this->geolocationHighAccuracy = $geolocationHighAccuracy;
+
+        return $this;
+    }
+
+    public function getGeolocationHighAccuracy(): bool
+    {
+        return $this->evaluate($this->geolocationHighAccuracy);
+    }
+
     public function customTiles(array | Closure $customTiles): static
     {
         $this->customTiles = $customTiles;
@@ -221,9 +266,12 @@ class LeafletMapPicker extends Field
                 'draggable' => $this->getDraggable(),
                 'clickable' => $this->getClickable(),
                 'defaultLocation' => $this->getDefaultLocation(),
-                'statePath' => $this->getStatePath(),
                 'defaultZoom' => $this->getDefaultZoom(),
                 'myLocationButtonLabel' => $this->getMyLocationButtonLabel(),
+                'searchModalId' => "{$this->getId()}-location-search-modal",
+                'geocoderEndpoint' => $this->getGeocoderEndpoint(),
+                'geolocationHighAccuracy' => $this->getGeolocationHighAccuracy(),
+                'geolocationTimeout' => $this->getGeolocationTimeout(),
                 'tileProvider' => $this->getTileProvider(),
                 'customTiles' => $this->getCustomTiles(),
                 'customMarker' => $this->getCustomMarker(),
