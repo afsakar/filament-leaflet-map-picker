@@ -9,11 +9,18 @@ export function createFieldState() {
                 return false;
             }
 
+            if (this.destroyed) {
+                return false;
+            }
+
+            const updated = this.updateMap(normalized, true);
+
+            if (updated === false) {
+                return false;
+            }
+
             this.lastValidCoordinates = normalized;
-            this.lat = normalized.lat;
-            this.lng = normalized.lng;
             this.location = normalized;
-            this.updateMap(normalized, true);
 
             return true;
         },
@@ -21,7 +28,7 @@ export function createFieldState() {
         updateMapFromAlpine(value) {
             const normalized = normalizeCoordinates(value);
 
-            if (!normalized || !this.map || !this.marker) {
+            if (this.destroyed || !normalized || !this.map || !this.marker) {
                 return;
             }
 
@@ -29,8 +36,13 @@ export function createFieldState() {
                 return;
             }
 
+            const updated = this.updateMap(normalized, true);
+
+            if (updated === false) {
+                return;
+            }
+
             this.lastValidCoordinates = normalized;
-            this.updateMap(normalized, true);
         },
 
         getCoordinates() {

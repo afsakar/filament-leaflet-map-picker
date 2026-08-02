@@ -14,6 +14,7 @@ export default function leafletMapPicker({ location, config }) {
         ...fieldState,
         map: null,
         marker: null,
+        destroyed: false,
         lat: null,
         lng: null,
         location: null,
@@ -52,6 +53,7 @@ export default function leafletMapPicker({ location, config }) {
         tileProviders: defaultTileProviders,
 
         init: function () {
+            this.destroyed = false;
             this.location = location
             this.config = { ...this.config, ...config }
             this.resetSearchState();
@@ -65,6 +67,7 @@ export default function leafletMapPicker({ location, config }) {
         },
 
         destroy: function () {
+            this.destroyed = true;
             clearTimeout(this.searchTimeout);
             this.searchController?.abort();
             this.resizeObserver?.disconnect();
@@ -361,6 +364,10 @@ export default function leafletMapPicker({ location, config }) {
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
+                    if (this.destroyed) {
+                        return;
+                    }
+
                     this.setCoordinates({
                         lat: position.coords.latitude,
                         lng: position.coords.longitude,
@@ -379,6 +386,10 @@ export default function leafletMapPicker({ location, config }) {
         },
 
         updateMap: function (position, shouldPan = true) {
+            if (this.destroyed || !this.map || !this.marker) {
+                return false;
+            }
+
             this.marker.setLatLng([position.lat, position.lng]);
 
             if (shouldPan) {
@@ -387,6 +398,8 @@ export default function leafletMapPicker({ location, config }) {
 
             this.lat = position.lat;
             this.lng = position.lng;
+
+            return true;
         },
 
         observeMapContainer: function () {

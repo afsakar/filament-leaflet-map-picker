@@ -98,3 +98,26 @@ test('getCoordinates resolves entangled location, last valid fallback, then defa
     subject.lastValidCoordinates = null;
     assert.deepEqual(subject.getCoordinates(), { lat: 41.0082, lng: 28.9784 });
 });
+
+test('setCoordinates ignores late geolocation updates after destroy', () => {
+    const subject = createSubject({
+        destroyed: true,
+        location: { lat: 1, lng: 2 },
+        lastValidCoordinates: { lat: 1, lng: 2 },
+        lat: 1,
+        lng: 2,
+        updateMap(position, shouldPan) {
+            this.updateMapCalls.push({ position, shouldPan });
+            return false;
+        },
+    });
+
+    const result = subject.setCoordinates({ lat: 40.1, lng: 29.2 });
+
+    assert.equal(result, false);
+    assert.deepEqual(subject.location, { lat: 1, lng: 2 });
+    assert.deepEqual(subject.lastValidCoordinates, { lat: 1, lng: 2 });
+    assert.equal(subject.lat, 1);
+    assert.equal(subject.lng, 2);
+    assert.deepEqual(subject.updateMapCalls, []);
+});
