@@ -42,7 +42,7 @@
             slide-over
             :id="$field->getId() . '-location-search-modal'"
             width="md"
-            x-on:open-modal.window="if ($event.detail.id === config.searchModalId) searchQuery = ''; localSearchResults = []"
+            x-on:open-modal.window="if ($event.detail.id === config.searchModalId) resetSearchState()"
         >
             <x-slot name="heading">
                 {{ __('filament-leaflet-map-picker::leaflet-map-picker.search_location') }}
@@ -54,7 +54,7 @@
                         <x-filament::input
                             type="text"
                             x-model="searchQuery"
-                            x-on:input="debounceSearch()"
+                            x-on:keydown.enter.prevent="submitSearch()"
                             placeholder="{{ __('filament-leaflet-map-picker::leaflet-map-picker.search_placeholder') }}"
                         />
                     </x-filament::input.wrapper>
@@ -109,7 +109,17 @@
             </div>
 
             <x-slot name="footer">
-                <x-filament::button color="gray" @click="$dispatch('close-modal', { id: config.searchModalId })">
+                <x-filament::button
+                    x-bind:disabled="isSearching || String(searchQuery ?? '').trim().length < 3"
+                    @click="submitSearch()"
+                >
+                    {{ __('filament-leaflet-map-picker::leaflet-map-picker.search_location') }}
+                </x-filament::button>
+
+                <x-filament::button
+                    color="gray"
+                    @click="resetSearchState(); $dispatch('close-modal', { id: config.searchModalId })"
+                >
                     {{ __('filament-leaflet-map-picker::leaflet-map-picker.cancel') }}
                 </x-filament::button>
             </x-slot>

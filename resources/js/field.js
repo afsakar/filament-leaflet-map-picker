@@ -1,5 +1,11 @@
 import * as L from 'leaflet';
 import { createFieldState } from './field-state.js';
+import {
+    getGeolocationErrorMessageKey,
+    getGeolocationOptions,
+    scheduleModalSearch,
+} from './field-policy.js';
+import defaultTileProviders from './tile-providers.js';
 
 export default function leafletMapPicker({ location, config }) {
     const fieldState = createFieldState();
@@ -13,6 +19,13 @@ export default function leafletMapPicker({ location, config }) {
         location: null,
         lastValidCoordinates: null,
         tileLayer: null,
+        searchTimeout: null,
+        searchController: null,
+        searchRequestId: 0,
+        lastSearchAt: 0,
+        searchQuery: '',
+        localSearchResults: [],
+        isSearching: false,
         config: {
             draggable: true,
             clickable: true,
@@ -30,67 +43,21 @@ export default function leafletMapPicker({ location, config }) {
             customTiles: [],
             customMarker: null,
             searchButtonLabel: '',
-            searchQuery: '',
-            localSearchResults: [],
-            isSearching: false,
-            searchTimeout: null,
+            messages: {},
             is_disabled: false,
             showTileControl: true,
         },
 
-        tileProviders: {
-            openstreetmap: {
-                url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                options: {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                }
-            },
-            google: {
-                url: 'http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-                options: {
-                    attribution: '&copy; Google Maps',
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-                }
-            },
-            googleSatellite: {
-                url: 'http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                options: {
-                    attribution: '&copy; Google Maps',
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-                }
-            },
-            googleTerrain: {
-                url: 'http://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
-                options: {
-                    attribution: '&copy; Google Maps',
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-                }
-            },
-            googleHybrid: {
-                url: 'http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',
-                options: {
-                    attribution: '&copy; Google Maps',
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-                }
-            },
-            esri: {
-                url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                options: {
-                    attribution: '&copy; <a href="https://www.esri.com/">Esri</a>'
-                }
-            }
-        },
+        tileProviders: defaultTileProviders,
 
         init: function () {
             this.location = location
             this.config = { ...this.config, ...config }
-            this.searchQuery = ''
-            this.localSearchResults = []
-            this.isSearching = false
+            this.resetSearchState();
 
-            if (this.config.customTiles && Object.keys(this.config.customTiles).length > 0) {
-                this.tileProviders = { ...this.tileProviders, ...this.config.customTiles }
-            }
+            const customTiles = Array.isArray(this.config.customTiles) ? {} : (this.config.customTiles ?? {});
+
+            this.tileProviders = { ...defaultTileProviders, ...customTiles };
 
             this.initMap()
             this.$watch('location', (value) => this.updateMapFromAlpine(value));
@@ -204,49 +171,63 @@ export default function leafletMapPicker({ location, config }) {
             this.map.addControl(new searchControl());
         },
 
-        debounceSearch: function() {
-            if (this.searchTimeout) {
-                clearTimeout(this.searchTimeout);
-            }
-            
-            if (!this.searchQuery || this.searchQuery.length < 3) {
-                this.localSearchResults = [];
-                this.isSearching = false;
+        resetSearchState: function () {
+            clearTimeout(this.searchTimeout);
+            this.searchController?.abort();
+
+            this.searchTimeout = null;
+            this.searchController = null;
+            this.searchRequestId += 1;
+            this.searchQuery = '';
+            this.localSearchResults = [];
+            this.isSearching = false;
+        },
+
+        notify: function (title, message) {
+            if (!message) {
                 return;
             }
-            
-            this.isSearching = true;
-            this.searchTimeout = setTimeout(() => {
-                this.searchLocationFromModal(this.searchQuery);
-            }, 500);
+
+            new FilamentNotification()
+                .title(title)
+                .body(message)
+                .danger()
+                .send();
+        },
+
+        notifySearchError: function (messageKey) {
+            this.notify(
+                this.config.searchButtonLabel || 'Search location',
+                this.config.messages?.[messageKey] ?? '',
+            );
+        },
+
+        notifyLocationError: function (messageKey) {
+            this.notify(
+                this.config.myLocationButtonLabel || 'My Location',
+                this.config.messages?.[messageKey] ?? '',
+            );
+        },
+
+        submitSearch: function () {
+            this.searchLocationFromModal(this.searchQuery);
         },
 
         searchLocationFromModal: function(query) {
-            if (!query || query.length < 3) {
+            const started = scheduleModalSearch(this, query);
+
+            if (!started) {
+                this.localSearchResults = [];
                 this.isSearching = false;
-                return;
             }
-            
-            fetch(`${this.config.geocoderEndpoint}?format=json&q=${encodeURIComponent(query)}&limit=8`)
-                .then(response => response.json())
-                .then(data => {
-                    this.localSearchResults = data;
-                    this.isSearching = false;
-                })
-                .catch(error => {
-                    console.error('Konum arama hatası:', error);
-                    this.isSearching = false;
-                });
         },
         
         selectLocationFromModal: function(result) {
             if (!this.setCoordinates({ lat: result.lat, lng: result.lon })) {
                 return;
             }
-            
-            this.localSearchResults = [];
-            this.searchQuery = '';
 
+            this.resetSearchState();
             this.$dispatch('close-modal', { id: this.config.searchModalId });
         },
 
@@ -255,7 +236,10 @@ export default function leafletMapPicker({ location, config }) {
                 this.map.removeLayer(this.tileLayer);
             }
 
-            const provider = this.tileProviders[providerName] || this.tileProviders.openstreetmap;
+            const resolvedProviderName = this.tileProviders[providerName] ? providerName : 'openstreetmap';
+            const provider = this.tileProviders[resolvedProviderName] || this.tileProviders.openstreetmap;
+
+            this.config.tileProvider = resolvedProviderName;
 
             this.tileLayer = L.tileLayer(provider.url, provider.options).addTo(this.map);
         },
@@ -341,34 +325,30 @@ export default function leafletMapPicker({ location, config }) {
         },
 
         goToCurrentLocation: function () {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const latLng = {
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        };
+            if (!window.isSecureContext) {
+                this.notifyLocationError('secure_context_required');
 
-                        this.setCoordinates(latLng);
-                    },
-                    (error) => {
-                        if (window.location.protocol !== 'https:') {
-                            new FilamentNotification().title('Need\'s HTTPS').body('Secure connection (HTTPS) required to access location information').danger().send();
-                            return;
-                        }
-
-                        new FilamentNotification().title('Error').body('Could not get location. Please check console errors').danger().send();
-                        console.error('Error getting location:', error);
-                    },
-                    {
-                        enableHighAccuracy: this.config.geolocationHighAccuracy,
-                        timeout: this.config.geolocationTimeout,
-                        maximumAge: 0,
-                    }
-                );
-            } else {
-                new FilamentNotification().title('No Browser Support').body('Your browser does not support location services').danger().send();
+                return;
             }
+
+            if (!navigator.geolocation) {
+                this.notifyLocationError('browser_location_not_supported');
+
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    this.setCoordinates({
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                    });
+                },
+                (error) => {
+                    this.notifyLocationError(getGeolocationErrorMessageKey(error));
+                },
+                getGeolocationOptions(this.config),
+            );
         },
 
         markerMoved: function (event) {

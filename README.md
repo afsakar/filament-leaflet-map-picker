@@ -101,9 +101,12 @@ LeafletMapPicker::make('location')
     ->draggable() // default true
     ->clickable() // default true
     ->myLocationButtonLabel('Go to My Location')
+    ->geocoderEndpoint('https://nominatim.openstreetmap.org/search')
+    ->geolocationTimeout(10000)
+    ->geolocationHighAccuracy()
     ->hideTileControl()
     ->readOnly() // default false, when you set this to true, the marker will not be draggable or clickable and current location and search location buttons will be hidden
-    ->tileProvider('openstreetmap') // default options: openstreetmap, google, googleSatellite, googleTerrain, googleHybrid, esri
+    ->tileProvider('openstreetmap') // default options: openstreetmap, esri
     ->customTiles([
         'mapbox' => [
             'url' => 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}',
@@ -137,7 +140,7 @@ LeafletMapPickerEntry::make('location')
     ->label('Property Location')
     ->height('500px')
     ->defaultLocation([41.0082, 28.9784])
-    ->tileProvider('openstreetmap') // default options: openstreetmap, google, googleSatellite, googleTerrain, googleHybrid, esri
+    ->tileProvider('openstreetmap') // default options: openstreetmap, esri
     ->hideTileControl()
     ->customTiles([
         'mapbox' => [
@@ -157,6 +160,13 @@ LeafletMapPickerEntry::make('location')
         'popupAnchor' => [0, -38]
     ])
 ```
+
+### Search, geocoder, and tile policy
+
+- The built-in tile presets are limited to `openstreetmap` and `esri`. Add any other HTTPS provider with `customTiles()` and supply the attribution, API keys, and usage compliance yourself.
+- The default browser geocoder endpoint is `https://nominatim.openstreetmap.org/search`.
+- Browser search is explicit-submit only and keeps roughly a 1 request/second cadence for the public Nominatim policy. The package does not spoof a browser `User-Agent`.
+- If you need higher traffic, custom headers, or stronger policy control, point `geocoderEndpoint()` at your own backend proxy or a commercial/provider-managed geocoder instead of the public endpoint.
 
 ## Screenshots
 

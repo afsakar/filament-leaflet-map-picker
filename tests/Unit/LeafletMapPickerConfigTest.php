@@ -31,10 +31,20 @@ it('builds config with modal and geolocation settings', function () {
     expect($config)
         ->toMatchArray([
             'searchModalId' => 'location-field-location-search-modal',
+            'searchButtonLabel' => 'Search location',
             'geocoderEndpoint' => 'https://nominatim.openstreetmap.org/search',
             'geolocationHighAccuracy' => false,
             'geolocationTimeout' => 10000,
             'showTileControl' => true,
+            'messages' => [
+                'search_failed' => 'Search failed. Please try again.',
+                'rate_limit_wait' => 'Please wait a moment before trying another search.',
+                'secure_context_required' => 'A secure HTTPS context is required before requesting your location.',
+                'browser_location_not_supported' => 'Your browser does not support location services.',
+                'location_permission_denied' => 'Location permission was denied.',
+                'location_unavailable' => 'Your location is currently unavailable.',
+                'location_timeout' => 'Location request timed out.',
+            ],
         ])
         ->not->toHaveKey('showTaleControl')
         ->not->toHaveKey('statePath');

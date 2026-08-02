@@ -1,4 +1,5 @@
 import * as L from 'leaflet';
+import defaultTileProviders from './tile-providers.js';
 
 export default function leafletMapPickerEntry({ location, config }) {
     return {
@@ -20,56 +21,14 @@ export default function leafletMapPickerEntry({ location, config }) {
             markerShadowPath: '',
         },
 
-        tileProviders: {
-            openstreetmap: {
-                url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                options: {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                }
-            },
-            google: {
-                url: 'http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-                options: {
-                    attribution: '&copy; Google Maps',
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-                }
-            },
-            googleSatellite: {
-                url: 'http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                options: {
-                    attribution: '&copy; Google Maps',
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-                }
-            },
-            googleTerrain: {
-                url: 'http://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
-                options: {
-                    attribution: '&copy; Google Maps',
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-                }
-            },
-            googleHybrid: {
-                url: 'http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',
-                options: {
-                    attribution: '&copy; Google Maps',
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-                }
-            },
-            esri: {
-                url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                options: {
-                    attribution: '&copy; <a href="https://www.esri.com/">Esri</a>'
-                }
-            }
-        },
+        tileProviders: defaultTileProviders,
 
         init: function () {
             this.location = location;
             this.config = { ...this.config, ...config };
+            const customTiles = Array.isArray(this.config.customTiles) ? {} : (this.config.customTiles ?? {});
 
-            if (this.config.customTiles && Object.keys(this.config.customTiles).length > 0) {
-                this.tileProviders = { ...this.tileProviders, ...this.config.customTiles };
-            }
+            this.tileProviders = { ...defaultTileProviders, ...customTiles };
 
             this.initMap();
         },
@@ -116,7 +75,10 @@ export default function leafletMapPickerEntry({ location, config }) {
                 this.map.removeLayer(this.tileLayer);
             }
 
-            const provider = this.tileProviders[providerName] || this.tileProviders.openstreetmap;
+            const resolvedProviderName = this.tileProviders[providerName] ? providerName : 'openstreetmap';
+            const provider = this.tileProviders[resolvedProviderName] || this.tileProviders.openstreetmap;
+
+            this.config.tileProvider = resolvedProviderName;
 
             this.tileLayer = L.tileLayer(provider.url, provider.options).addTo(this.map);
         },
