@@ -13,7 +13,7 @@ export function createFieldState() {
             this.lat = normalized.lat;
             this.lng = normalized.lng;
             this.location = normalized;
-            this.updateMap(normalized, false);
+            this.updateMap(normalized, true);
 
             return true;
         },

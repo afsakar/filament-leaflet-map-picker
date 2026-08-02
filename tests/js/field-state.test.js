@@ -19,6 +19,9 @@ function createSubject(overrides = {}) {
         updateMapCalls: [],
         updateMap(position, shouldPan) {
             this.updateMapCalls.push({ position, shouldPan });
+            if (shouldPan) {
+                this.map.panTo([position.lat, position.lng]);
+            }
             this.lat = position.lat;
             this.lng = position.lng;
         },
@@ -26,7 +29,7 @@ function createSubject(overrides = {}) {
     };
 }
 
-test('setCoordinates writes canonical entangled state and skips panning', () => {
+test('setCoordinates writes canonical entangled state and pans for user interactions', () => {
     const subject = createSubject();
 
     const result = subject.setCoordinates({ lat: '0', lng: '0' });
@@ -35,8 +38,9 @@ test('setCoordinates writes canonical entangled state and skips panning', () => 
     assert.deepEqual(subject.location, { lat: 0, lng: 0 });
     assert.deepEqual(subject.lastValidCoordinates, { lat: 0, lng: 0 });
     assert.deepEqual(subject.updateMapCalls, [
-        { position: { lat: 0, lng: 0 }, shouldPan: false },
+        { position: { lat: 0, lng: 0 }, shouldPan: true },
     ]);
+    assert.deepEqual(subject.map.panToCalls, [[0, 0]]);
 });
 
 test('setCoordinates rejects invalid coordinates without mutating state', () => {
@@ -63,6 +67,7 @@ test('updateMapFromAlpine ignores invalid external state and equal coordinates',
 
     assert.deepEqual(subject.lastValidCoordinates, { lat: 41.0082, lng: 28.9784 });
     assert.deepEqual(subject.updateMapCalls, []);
+    assert.deepEqual(subject.map.panToCalls, []);
 });
 
 test('updateMapFromAlpine pans only for a distinct valid external state', () => {
@@ -76,6 +81,7 @@ test('updateMapFromAlpine pans only for a distinct valid external state', () => 
     assert.deepEqual(subject.updateMapCalls, [
         { position: { lat: 40.1, lng: 29.2 }, shouldPan: true },
     ]);
+    assert.deepEqual(subject.map.panToCalls, [[40.1, 29.2]]);
 });
 
 test('getCoordinates resolves entangled location, last valid fallback, then default', () => {
