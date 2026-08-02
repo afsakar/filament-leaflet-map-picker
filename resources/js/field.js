@@ -85,7 +85,7 @@ export default function leafletMapPicker({ location, config }) {
             }
 
             this.initMap()
-            this.$watch('location', (value) => this.updateMapFromAlpine());
+            this.$wire.$watch(this.config.statePath, () => this.updateMapFromAlpine());
         },
 
         initMap: function () {
