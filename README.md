@@ -28,7 +28,7 @@ A Filament Forms component that provides an interactive Leaflet map for selectin
 | Package line | Filament | Laravel | PHP | Notes |
 | --- | --- | --- | --- | --- |
 | v3.0.0 target | 4.x | 12.x | 8.2+ | Supported in this line |
-| v3.0.0 target | 4.x | 13.x | 8.2+ | Supported in this line |
+| v3.0.0 target | 4.x | 13.x | 8.3+ | Supported in this line |
 | v3.0.0 target | 5.x | 12.x | 8.3+ | Host app must provide Livewire 4 and Tailwind CSS 4 |
 | v3.0.0 target | 5.x | 13.x | 8.3+ | Host app must provide Livewire 4 and Tailwind CSS 4 |
 | v2.x | 3.x | Existing v2 support matrix | See v2 docs | Filament 3 stays on the v2 line |
