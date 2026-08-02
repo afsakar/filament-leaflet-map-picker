@@ -60,7 +60,7 @@ jobs:
           composer update --with-all-dependencies --prefer-dist --no-interaction
 
       - name: List Installed Dependencies
-        run: composer show -D
+        run: composer show
 
       - name: Validate composer metadata
         run: composer validate --no-check-publish
