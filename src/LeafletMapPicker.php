@@ -293,7 +293,7 @@ class LeafletMapPicker extends Field
                 'is_disabled' => $this->isDisabled() || $this->isReadOnly(),
                 'showTileControl' => $this->showTileControl,
             ]),
-            JSON_THROW_ON_ERROR
+            JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION
         );
     }
 
