@@ -89,6 +89,11 @@ class LeafletMapPickerEntry extends Component
         ];
     }
 
+    public function getNormalizedState(): ?array
+    {
+        return CoordinateNormalizer::normalize($this->getState());
+    }
+
     public function getTileProvider(): string
     {
         return $this->tileProvider;

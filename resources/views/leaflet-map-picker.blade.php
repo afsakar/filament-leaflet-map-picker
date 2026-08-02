@@ -1,3 +1,8 @@
+@php
+    $modalId = $field->getId() . '-location-search-modal';
+    $searchLabel = __('filament-leaflet-map-picker::leaflet-map-picker.search_location');
+@endphp
+
 <x-dynamic-component
     :component="$getFieldWrapperView()"
     :field="$field"
@@ -40,21 +45,26 @@
 
         <x-filament::modal
             slide-over
-            :id="$field->getId() . '-location-search-modal'"
+            :id="$modalId"
             width="md"
             x-on:open-modal.window="if ($event.detail.id === config.searchModalId) resetSearchState()"
         >
             <x-slot name="heading">
-                {{ __('filament-leaflet-map-picker::leaflet-map-picker.search_location') }}
+                {{ $searchLabel }}
             </x-slot>
 
             <div class="space-y-4">
                 <div class="relative">
+                    <label for="{{ $modalId }}-search-input" class="sr-only">
+                        {{ $searchLabel }}
+                    </label>
                     <x-filament::input.wrapper  suffix-icon="heroicon-m-magnifying-glass">
                         <x-filament::input
+                            id="{{ $modalId }}-search-input"
                             type="text"
                             x-model="searchQuery"
                             x-on:keydown.enter.prevent="submitSearch()"
+                            aria-label="{{ $searchLabel }}"
                             placeholder="{{ __('filament-leaflet-map-picker::leaflet-map-picker.search_placeholder') }}"
                         />
                     </x-filament::input.wrapper>
@@ -110,13 +120,15 @@
 
             <x-slot name="footer">
                 <x-filament::button
+                    type="button"
                     x-bind:disabled="isSearching || String(searchQuery ?? '').trim().length < 3"
                     @click="submitSearch()"
                 >
-                    {{ __('filament-leaflet-map-picker::leaflet-map-picker.search_location') }}
+                    {{ $searchLabel }}
                 </x-filament::button>
 
                 <x-filament::button
+                    type="button"
                     color="gray"
                     @click="resetSearchState(); $dispatch('close-modal', { id: config.searchModalId })"
                 >

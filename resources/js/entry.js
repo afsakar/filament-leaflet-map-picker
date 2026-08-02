@@ -1,4 +1,5 @@
 import * as L from 'leaflet';
+import { resolveCoordinates } from './coordinates.js';
 import defaultTileProviders from './tile-providers.js';
 
 export default function leafletMapPickerEntry({ location, config }) {
@@ -6,12 +7,15 @@ export default function leafletMapPickerEntry({ location, config }) {
         map: null,
         marker: null,
         location: null,
+        searchTimeout: null,
+        searchController: null,
+        resizeObserver: null,
         tileLayer: null,
         config: {
             defaultZoom: 13,
             defaultLocation: {
-                lat: 41.0082,
-                lng: 28.9784,
+                lat: 37.9106,
+                lng: 40.2365,
             },
             tileProvider: 'openstreetmap',
             customTiles: [],
@@ -33,9 +37,22 @@ export default function leafletMapPickerEntry({ location, config }) {
             this.initMap();
         },
 
+        destroy: function () {
+            clearTimeout(this.searchTimeout);
+            this.searchController?.abort();
+            this.resizeObserver?.disconnect();
+            this.map?.remove();
+            this.searchTimeout = null;
+            this.searchController = null;
+            this.resizeObserver = null;
+            this.map = null;
+            this.marker = null;
+            this.tileLayer = null;
+        },
+
         initMap: function () {
             const coordinates = this.getCoordinates();
-            
+
             this.map = L.map(this.$refs.mapContainer).setView(
                 [coordinates.lat, coordinates.lng],
                 this.config.defaultZoom
@@ -65,9 +82,14 @@ export default function leafletMapPickerEntry({ location, config }) {
                 markerOptions
             ).addTo(this.map);
 
+            this.location = coordinates;
+
             if (this.config.showTileControl) {
                 this.addTileSelectorControl();
             }
+
+            this.observeMapContainer();
+            this.$nextTick(() => this.map?.invalidateSize(false));
         },
 
         setTileLayer: function(providerName) {
@@ -125,28 +147,20 @@ export default function leafletMapPickerEntry({ location, config }) {
         },
 
         getCoordinates: function () {
-            let locationObj = this.location;
-            
-            if (typeof locationObj === 'string') {
-                try {
-                    locationObj = JSON.parse(locationObj);
-                } catch (e) {
-                    locationObj = null;
-                }
+            return resolveCoordinates(this.location, this.config.defaultLocation) ?? {
+                lat: 37.9106,
+                lng: 40.2365,
+            };
+        },
+
+        observeMapContainer: function () {
+            if (typeof ResizeObserver === 'undefined') {
+                return;
             }
 
-            if (
-                locationObj === null ||
-                !locationObj.hasOwnProperty('lat') ||
-                !locationObj.hasOwnProperty('lng')
-            ) {
-                locationObj = {
-                    lat: this.config.defaultLocation.lat,
-                    lng: this.config.defaultLocation.lng,
-                };
-            }
-
-            return locationObj;
-        }
+            this.resizeObserver?.disconnect();
+            this.resizeObserver = new ResizeObserver(() => this.map?.invalidateSize(false));
+            this.resizeObserver.observe(this.$refs.mapContainer);
+        },
     };
 }

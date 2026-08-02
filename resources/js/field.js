@@ -21,6 +21,7 @@ export default function leafletMapPicker({ location, config }) {
         tileLayer: null,
         searchTimeout: null,
         searchController: null,
+        resizeObserver: null,
         searchRequestId: 0,
         lastSearchAt: 0,
         searchQuery: '',
@@ -31,11 +32,11 @@ export default function leafletMapPicker({ location, config }) {
             clickable: true,
             defaultZoom: 13,
             defaultLocation: {
-                lat: 41.0082,
-                lng: 28.9784,
+                lat: 37.9106,
+                lng: 40.2365,
             },
             myLocationButtonLabel: '',
-            searchModalId: 'location-search-modal',
+            searchModalId: '',
             geocoderEndpoint: 'https://nominatim.openstreetmap.org/search',
             geolocationHighAccuracy: false,
             geolocationTimeout: 10000,
@@ -61,6 +62,19 @@ export default function leafletMapPicker({ location, config }) {
 
             this.initMap()
             this.$watch('location', (value) => this.updateMapFromAlpine(value));
+        },
+
+        destroy: function () {
+            clearTimeout(this.searchTimeout);
+            this.searchController?.abort();
+            this.resizeObserver?.disconnect();
+            this.map?.remove();
+            this.searchTimeout = null;
+            this.searchController = null;
+            this.resizeObserver = null;
+            this.map = null;
+            this.marker = null;
+            this.tileLayer = null;
         },
 
         initMap: function () {
@@ -134,6 +148,9 @@ export default function leafletMapPicker({ location, config }) {
             if (this.config.showTileControl) {
                 this.addTileSelectorControl();
             }
+
+            this.observeMapContainer();
+            this.$nextTick(() => this.map?.invalidateSize(false));
         },
 
         addSearchButton: function () {
@@ -143,27 +160,30 @@ export default function leafletMapPicker({ location, config }) {
                 },
                 onAdd: (map) => {
                     const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                    const button = L.DomUtil.create('a', 'search-button', container);
+                    const button = L.DomUtil.create('button', 'search-button', container);
+                    const label = this.config.searchButtonLabel || 'Search Location';
                     button.innerHTML = `
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     `;
-                    button.title = this.config.searchButtonLabel || 'Search Location';
-                    button.href = '#';
-                    button.role = 'button';
+                    button.type = 'button';
+                    button.title = label;
+                    button.setAttribute('aria-label', label);
                     button.style.display = 'flex';
                     button.style.alignItems = 'center';
                     button.style.justifyContent = 'center';
                     button.style.width = '30px';
                     button.style.height = '30px';
-                    button.setAttribute('x-tooltip.raw', this.config.searchButtonLabel || 'Search Location');
-        
+                    button.setAttribute('x-tooltip.raw', label);
+
+                    L.DomEvent.disableClickPropagation(container);
+                    L.DomEvent.disableScrollPropagation(container);
+
                     L.DomEvent.on(button, 'click', (e) => {
-                        L.DomEvent.preventDefault(e);
                         this.$dispatch('open-modal', { id: this.config.searchModalId });
                     });
-        
+
                     return container;
                 }
             });
@@ -295,16 +315,16 @@ export default function leafletMapPicker({ location, config }) {
                 },
                 onAdd: (map) => {
                     const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                    const button = L.DomUtil.create('a', 'location-button', container);
+                    const button = L.DomUtil.create('button', 'location-button', container);
                     button.innerHTML = `
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                     `;
+                    button.type = 'button';
                     button.title = this.config.myLocationButtonLabel;
-                    button.href = '#';
-                    button.role = 'button';
+                    button.setAttribute('aria-label', this.config.myLocationButtonLabel);
                     button.style.display = 'flex';
                     button.style.alignItems = 'center';
                     button.style.justifyContent = 'center';
@@ -312,8 +332,10 @@ export default function leafletMapPicker({ location, config }) {
                     button.style.height = '30px';
                     button.setAttribute('x-tooltip.raw', this.config.myLocationButtonLabel);
 
+                    L.DomEvent.disableClickPropagation(container);
+                    L.DomEvent.disableScrollPropagation(container);
+
                     L.DomEvent.on(button, 'click', (e) => {
-                        L.DomEvent.preventDefault(e);
                         this.goToCurrentLocation();
                     });
 
@@ -365,6 +387,16 @@ export default function leafletMapPicker({ location, config }) {
 
             this.lat = position.lat;
             this.lng = position.lng;
-        }
+        },
+
+        observeMapContainer: function () {
+            if (typeof ResizeObserver === 'undefined') {
+                return;
+            }
+
+            this.resizeObserver?.disconnect();
+            this.resizeObserver = new ResizeObserver(() => this.map?.invalidateSize(false));
+            this.resizeObserver.observe(this.$refs.mapContainer);
+        },
     }
 }

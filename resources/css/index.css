@@ -36,6 +36,11 @@
     box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
 }
 
+.leaflet-tile-selector select:focus-visible {
+    outline: 2px solid var(--primary-600);
+    outline-offset: 2px;
+}
+
 .leaflet-tile-selector select:hover {
     border-color: var(--gray-500);
 }
@@ -46,4 +51,31 @@
     font-size: 12px;
     font-weight: 500;
     color: #4b5563;
+}
+
+.leaflet-bar button.location-button,
+.leaflet-bar button.search-button {
+    min-width: 30px;
+    min-height: 30px;
+    padding: 0;
+    border: 0;
+    background-color: white;
+    cursor: pointer;
+}
+
+.leaflet-bar button.location-button:focus-visible,
+.leaflet-bar button.search-button:focus-visible {
+    outline: 2px solid var(--primary-600);
+    outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+    .leaflet-tile-selector {
+        max-width: calc(100vw - 2rem);
+    }
+
+    .leaflet-tile-selector select {
+        width: 100%;
+        min-width: 0;
+    }
 }
