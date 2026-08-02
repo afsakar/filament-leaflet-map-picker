@@ -7,6 +7,7 @@ export default function leafletMapPicker({ location, config }) {
         lat: null,
         lng: null,
         location: null,
+        lastValidCoordinates: null,
         tileLayer: null,
         config: {
             draggable: true,
@@ -89,8 +90,10 @@ export default function leafletMapPicker({ location, config }) {
         },
 
         initMap: function () {
+            const coordinates = this.getCoordinates();
+
             this.map = L.map(this.$refs.mapContainer).setView(
-                [this.getCoordinates().lat, this.getCoordinates().lng],
+                [coordinates.lat, coordinates.lng],
                 this.config.defaultZoom
             );
 
@@ -114,13 +117,13 @@ export default function leafletMapPicker({ location, config }) {
             }
 
             this.marker = L.marker(
-                [this.getCoordinates().lat, this.getCoordinates().lng],
+                [coordinates.lat, coordinates.lng],
                 markerOptions
             ).addTo(this.map);
 
-            this.lat = this.getCoordinates().lat;
-            this.lng = this.getCoordinates().lng;
-            this.setCoordinates(this.getCoordinates());
+            this.lat = coordinates.lat;
+            this.lng = coordinates.lng;
+            this.lastValidCoordinates = coordinates;
 
             if (this.config.clickable) {
                 this.map.on('click', (e) => {
@@ -398,26 +401,56 @@ export default function leafletMapPicker({ location, config }) {
             this.map.panTo([position.lat, position.lng]);
             this.lat = position.lat;
             this.lng = position.lng;
+            this.lastValidCoordinates = position;
         },
 
         setCoordinates: function (position) {
+            this.lastValidCoordinates = position;
             this.$wire.set(this.config.statePath, position);
         },
 
         getCoordinates: function () {
-            let location = this.$wire.get(this.config.statePath);
-            if (
-                location === null ||
-                !location.hasOwnProperty('lat') ||
-                !location.hasOwnProperty('lng')
-            ) {
-                location = {
-                    lat: this.config.defaultLocation.lat,
-                    lng: this.config.defaultLocation.lng,
-                };
+            const location = this.normalizeCoordinates(this.$wire.get(this.config.statePath));
+
+            if (location !== null) {
+                return location;
             }
 
-            return location;
+            return this.lastValidCoordinates ?? this.getDefaultCoordinates();
+        },
+
+        getDefaultCoordinates: function () {
+            return {
+                lat: this.config.defaultLocation.lat,
+                lng: this.config.defaultLocation.lng,
+            };
+        },
+
+        normalizeCoordinates: function (location) {
+            if (
+                location === null ||
+                typeof location !== 'object' ||
+                !Object.prototype.hasOwnProperty.call(location, 'lat') ||
+                !Object.prototype.hasOwnProperty.call(location, 'lng')
+            ) {
+                return null;
+            }
+
+            const lat = Number(location.lat);
+            const lng = Number(location.lng);
+
+            if (
+                !Number.isFinite(lat) ||
+                !Number.isFinite(lng) ||
+                lat < -90 ||
+                lat > 90 ||
+                lng < -180 ||
+                lng > 180
+            ) {
+                return null;
+            }
+
+            return { lat, lng };
         }
     }
 }
