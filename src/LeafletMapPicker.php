@@ -2,8 +2,8 @@
 
 namespace Afsakar\LeafletMapPicker;
 
+use Afsakar\LeafletMapPicker\Support\CoordinateNormalizer;
 use Closure;
-use Exception;
 use Filament\Forms\Components\Concerns\CanBeReadOnly;
 use Filament\Forms\Components\Field;
 use JsonException;
@@ -35,8 +35,6 @@ class LeafletMapPicker extends Field
     protected string | Closure $markerShadowPath = '';
 
     protected bool $showTileControl = true;
-
-    private int $precision = 8;
 
     protected ?array $customMarker = null;
 
@@ -91,22 +89,9 @@ class LeafletMapPicker extends Field
 
     public function getDefaultLocation(): array
     {
-        $position = $this->evaluate($this->defaultLocation);
-
-        if (is_array($position)) {
-            if (array_key_exists('lat', $position) && array_key_exists('lng', $position)) {
-                return $position;
-            } elseif (is_numeric($position[0]) && is_numeric($position[1])) {
-                return [
-                    'lat' => is_string($position[0]) ? round(floatval($position[0]), $this->precision) : $position[0],
-                    'lng' => is_string($position[1]) ? round(floatval($position[1]), $this->precision) : $position[1],
-                ];
-            }
-        }
-
-        return [
-            'lat' => 41.0082,
-            'lng' => 28.9784,
+        return CoordinateNormalizer::normalize($this->evaluate($this->defaultLocation)) ?? [
+            'lat' => 37.9106,
+            'lng' => 40.2365,
         ];
     }
 
@@ -255,18 +240,8 @@ class LeafletMapPicker extends Field
     /**
      * @throws JsonException
      */
-    public function getState(): array
+    public function getState(): ?array
     {
-        $state = parent::getState();
-
-        if (is_array($state)) {
-            return $state;
-        } else {
-            try {
-                return @json_decode($state, true, 512, JSON_THROW_ON_ERROR);
-            } catch (Exception $e) {
-                return $this->getDefaultLocation();
-            }
-        }
+        return CoordinateNormalizer::normalize(parent::getState());
     }
 }
