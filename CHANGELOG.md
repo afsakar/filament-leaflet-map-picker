@@ -2,6 +2,28 @@
 
 All notable changes to `filament-leaflet-map-picker` will be documented in this file.
 
+## v4: Filament 4/5 support, coordinate inputs, entangled state fix - 2026-08-03
+
+### History note
+
+`v4` started from its own root commit, so GitHub could not compare the two branches. `33929c9` grafts `main` into `v4` with `-s ours` (the v4 tree is kept as-is) and the follow-up commit restores the main-only changes that graft would have reverted: the dependabot action bumps (`fetch-metadata@v2.5.0`, `git-auto-commit-action@v7`) and the `v2.0.0` release notes in `CHANGELOG.md`.
+
+### What's in it
+
+- Filament 4/5 and Laravel 12/13 support, canonical `{lat, lng}` state shape, and the entry + table column components.
+- Fix: the picker never wrote state back to Livewire. `location` was passed as a constructor argument and assigned in `init()`, but Alpine initializes `$wire.$entangle()` interceptors before `init()` runs, so the interceptor stayed uninitialized and saving stored `null`. It is now an own property of the component object. `x-ignore` is also restored next to `x-load`, without which Alpine evaluates `x-data` before the async component is registered.
+- `showCoordinateInputs()` renders editable latitude/longitude inputs under the map, synced with the marker in both directions.
+- The search modal now queries the geocoder while typing (debounced) instead of only on Enter or the search button.
+- The table column renders as a compact thumbnail: a dot instead of a pin, no attribution control.
+
+### Verification
+
+- `vendor/bin/pest` — 39 passed (191 assertions)
+- `npm run test:js` — 21 passed
+- `vendor/bin/pint --test` — passed
+
+Two files on `main` are intentionally absent here: `tests/ExampleTest.php` (skeleton test, removed during the v4 rewrite) and `.phpunit.cache/test-results` (now gitignored).
+
 ## v3.0.0
 
 ### What's Changed
