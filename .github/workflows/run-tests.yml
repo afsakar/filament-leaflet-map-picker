@@ -7,21 +7,54 @@ on:
     branches: [main]
 
 jobs:
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Test JavaScript
+        run: npm run test:js
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Verify generated assets
+        run: git diff --exit-code -- resources/dist
+
   test:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        php: [8.2, 8.1]
-        laravel: [10.*]
-        stability: [prefer-lowest, prefer-stable]
         include:
-          - laravel: 10.*
-            testbench: 8.*
-            carbon: 2.*
+          - php: '8.2'
+            laravel: '12.*'
+            testbench: '10.*'
+            filament: '^4.0'
+          - php: '8.2'
+            laravel: '12.*'
+            testbench: '10.*'
+            filament: '^5.0'
+          - php: '8.3'
+            laravel: '13.*'
+            testbench: '11.*'
+            filament: '^4.0'
+          - php: '8.3'
+            laravel: '13.*'
+            testbench: '11.*'
+            filament: '^5.0'
 
-    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
+    name: P${{ matrix.php }} - L${{ matrix.laravel }} - F${{ matrix.filament }}
 
     steps:
       - name: Checkout code
@@ -41,11 +74,26 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" "nesbot/carbon:${{ matrix.carbon }}" --no-interaction --no-update
-          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+          composer require \
+            "laravel/framework:${{ matrix.laravel }}" \
+            "orchestra/testbench:${{ matrix.testbench }}" \
+            "filament/forms:${{ matrix.filament }}" \
+            "filament/infolists:${{ matrix.filament }}" \
+            "filament/support:${{ matrix.filament }}" \
+            --no-interaction --no-update
+          composer update --with-all-dependencies --prefer-dist --no-interaction
 
       - name: List Installed Dependencies
-        run: composer show -D
+        run: composer show
+
+      - name: Validate composer metadata
+        run: composer validate --no-check-publish
+
+      - name: Lint PHP
+        run: composer lint
+
+      - name: Run PHPStan
+        run: composer phpstan
 
       - name: Execute tests
-        run: vendor/bin/pest --ci
+        run: composer test -- --ci

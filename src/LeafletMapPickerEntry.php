@@ -2,6 +2,7 @@
 
 namespace Afsakar\LeafletMapPicker;
 
+use Afsakar\LeafletMapPicker\Support\CoordinateNormalizer;
 use Closure;
 use Filament\Infolists\Components\Entry as Component;
 use Filament\Support\Concerns\HasExtraAlpineAttributes;
@@ -17,8 +18,8 @@ class LeafletMapPickerEntry extends Component
     protected int $defaultZoom = 13;
 
     protected array $defaultLocation = [
-        'lat' => 41.0082,
-        'lng' => 28.9784,
+        'lat' => 37.9106,
+        'lng' => 40.2365,
     ];
 
     protected string $tileProvider = 'openstreetmap';
@@ -82,7 +83,15 @@ class LeafletMapPickerEntry extends Component
 
     public function getDefaultLocation(): array
     {
-        return $this->defaultLocation;
+        return CoordinateNormalizer::normalize($this->defaultLocation) ?? [
+            'lat' => 37.9106,
+            'lng' => 40.2365,
+        ];
+    }
+
+    public function getNormalizedState(): ?array
+    {
+        return CoordinateNormalizer::normalize($this->getState());
     }
 
     public function getTileProvider(): string

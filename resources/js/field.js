@@ -1,96 +1,98 @@
 import * as L from 'leaflet';
+import { createFieldState } from './field-state.js';
+import {
+    getGeolocationErrorMessageKey,
+    getGeolocationOptions,
+    scheduleModalSearch,
+} from './field-policy.js';
+import defaultTileProviders from './tile-providers.js';
 
 export default function leafletMapPicker({ location, config }) {
+    const fieldState = createFieldState();
+
     return {
+        ...fieldState,
         map: null,
         marker: null,
+        destroyed: false,
         lat: null,
         lng: null,
-        location: null,
+        // Must stay an own property: Alpine only initializes the `$wire.$entangle()`
+        // interceptor for properties present on the x-data object.
+        location,
+        coordinateInputs: {
+            lat: '',
+            lng: '',
+        },
+        lastValidCoordinates: null,
         tileLayer: null,
+        searchTimeout: null,
+        searchController: null,
+        resizeObserver: null,
+        searchRequestId: 0,
+        lastSearchAt: 0,
+        searchQuery: '',
+        localSearchResults: [],
+        isSearching: false,
         config: {
             draggable: true,
             clickable: true,
             defaultZoom: 13,
             defaultLocation: {
-                lat: 41.0082,
-                lng: 28.9784,
+                lat: 37.9106,
+                lng: 40.2365,
             },
             myLocationButtonLabel: '',
-            statePath: '',
+            searchModalId: '',
+            geocoderEndpoint: 'https://nominatim.openstreetmap.org/search',
+            geolocationHighAccuracy: false,
+            geolocationTimeout: 10000,
             tileProvider: 'openstreetmap',
             customTiles: [],
             customMarker: null,
             searchButtonLabel: '',
-            searchQuery: '',
-            localSearchResults: [],
-            isSearching: false,
-            searchTimeout: null,
+            messages: {},
             is_disabled: false,
             showTileControl: true,
         },
 
-        tileProviders: {
-            openstreetmap: {
-                url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                options: {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                }
-            },
-            google: {
-                url: 'http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-                options: {
-                    attribution: '&copy; Google Maps',
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-                }
-            },
-            googleSatellite: {
-                url: 'http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                options: {
-                    attribution: '&copy; Google Maps',
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-                }
-            },
-            googleTerrain: {
-                url: 'http://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
-                options: {
-                    attribution: '&copy; Google Maps',
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-                }
-            },
-            googleHybrid: {
-                url: 'http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',
-                options: {
-                    attribution: '&copy; Google Maps',
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-                }
-            },
-            esri: {
-                url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                options: {
-                    attribution: '&copy; <a href="https://www.esri.com/">Esri</a>'
-                }
-            }
-        },
+        tileProviders: defaultTileProviders,
 
         init: function () {
-            this.location = location
+            this.destroyed = false;
             this.config = { ...this.config, ...config }
-            this.searchQuery = ''
-            this.localSearchResults = []
-            this.isSearching = false
+            this.syncCoordinateInputs(this.location);
+            this.resetSearchState();
 
-            if (this.config.customTiles && Object.keys(this.config.customTiles).length > 0) {
-                this.tileProviders = { ...this.tileProviders, ...this.config.customTiles }
-            }
+            const customTiles = Array.isArray(this.config.customTiles) ? {} : (this.config.customTiles ?? {});
+
+            this.tileProviders = { ...defaultTileProviders, ...customTiles };
 
             this.initMap()
-            this.$watch('location', (value) => this.updateMapFromAlpine());
+            this.$watch('location', (value) => this.updateMapFromAlpine(value));
+        },
+
+        destroy: function () {
+            this.destroyed = true;
+            this.searchRequestId += 1;
+            clearTimeout(this.searchTimeout);
+            this.searchController?.abort();
+            this.resizeObserver?.disconnect();
+            this.map?.remove();
+            this.searchTimeout = null;
+            this.searchController = null;
+            this.isSearching = false;
+            this.resizeObserver = null;
+            this.map = null;
+            this.marker = null;
+            this.tileLayer = null;
         },
 
         initMap: function () {
+            const coordinates = this.getCoordinates();
+
             this.map = L.map(this.$refs.mapContainer).setView(
-                [this.getCoordinates().lat, this.getCoordinates().lng],
+                [coordinates.lat, coordinates.lng],
                 this.config.defaultZoom
             );
 
@@ -114,13 +116,13 @@ export default function leafletMapPicker({ location, config }) {
             }
 
             this.marker = L.marker(
-                [this.getCoordinates().lat, this.getCoordinates().lng],
+                [coordinates.lat, coordinates.lng],
                 markerOptions
             ).addTo(this.map);
 
-            this.lat = this.getCoordinates().lat;
-            this.lng = this.getCoordinates().lng;
-            this.setCoordinates(this.getCoordinates());
+            this.lat = coordinates.lat;
+            this.lng = coordinates.lng;
+            this.lastValidCoordinates = coordinates;
 
             if (this.config.clickable) {
                 this.map.on('click', (e) => {
@@ -157,6 +159,9 @@ export default function leafletMapPicker({ location, config }) {
             if (this.config.showTileControl) {
                 this.addTileSelectorControl();
             }
+
+            this.observeMapContainer();
+            this.$nextTick(() => this.map?.invalidateSize(false));
         },
 
         addSearchButton: function () {
@@ -166,27 +171,30 @@ export default function leafletMapPicker({ location, config }) {
                 },
                 onAdd: (map) => {
                     const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                    const button = L.DomUtil.create('a', 'search-button', container);
+                    const button = L.DomUtil.create('button', 'search-button', container);
+                    const label = this.config.searchButtonLabel || 'Search Location';
                     button.innerHTML = `
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     `;
-                    button.title = this.config.searchButtonLabel || 'Search Location';
-                    button.href = '#';
-                    button.role = 'button';
+                    button.type = 'button';
+                    button.title = label;
+                    button.setAttribute('aria-label', label);
                     button.style.display = 'flex';
                     button.style.alignItems = 'center';
                     button.style.justifyContent = 'center';
                     button.style.width = '30px';
                     button.style.height = '30px';
-                    button.setAttribute('x-tooltip.raw', this.config.searchButtonLabel || 'Search Location');
-        
+                    button.setAttribute('x-tooltip.raw', label);
+
+                    L.DomEvent.disableClickPropagation(container);
+                    L.DomEvent.disableScrollPropagation(container);
+
                     L.DomEvent.on(button, 'click', (e) => {
-                        L.DomEvent.preventDefault(e);
-                        this.$dispatch('open-modal', { id: 'location-search-modal' });
+                        this.$dispatch('open-modal', { id: this.config.searchModalId });
                     });
-        
+
                     return container;
                 }
             });
@@ -194,60 +202,64 @@ export default function leafletMapPicker({ location, config }) {
             this.map.addControl(new searchControl());
         },
 
-        debounceSearch: function() {
-            if (this.searchTimeout) {
-                clearTimeout(this.searchTimeout);
-            }
-            
-            if (!this.searchQuery || this.searchQuery.length < 3) {
-                this.localSearchResults = [];
-                this.isSearching = false;
+        resetSearchState: function () {
+            clearTimeout(this.searchTimeout);
+            this.searchController?.abort();
+
+            this.searchTimeout = null;
+            this.searchController = null;
+            this.searchRequestId += 1;
+            this.searchQuery = '';
+            this.localSearchResults = [];
+            this.isSearching = false;
+        },
+
+        notify: function (title, message) {
+            if (!message) {
                 return;
             }
-            
-            this.isSearching = true;
-            this.searchTimeout = setTimeout(() => {
-                this.searchLocationFromModal(this.searchQuery);
-            }, 500);
+
+            new FilamentNotification()
+                .title(title)
+                .body(message)
+                .danger()
+                .send();
+        },
+
+        notifySearchError: function (messageKey) {
+            this.notify(
+                this.config.searchButtonLabel || 'Search location',
+                this.config.messages?.[messageKey] ?? '',
+            );
+        },
+
+        notifyLocationError: function (messageKey) {
+            this.notify(
+                this.config.myLocationButtonLabel || 'My Location',
+                this.config.messages?.[messageKey] ?? '',
+            );
+        },
+
+        submitSearch: function () {
+            this.searchLocationFromModal(this.searchQuery);
         },
 
         searchLocationFromModal: function(query) {
-            if (!query || query.length < 3) {
+            const started = scheduleModalSearch(this, query);
+
+            if (!started) {
+                this.localSearchResults = [];
                 this.isSearching = false;
-                return;
             }
-            
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8`)
-                .then(response => response.json())
-                .then(data => {
-                    this.localSearchResults = data;
-                    this.isSearching = false;
-                })
-                .catch(error => {
-                    console.error('Konum arama hatası:', error);
-                    this.isSearching = false;
-                });
         },
         
         selectLocationFromModal: function(result) {
-            const lat = parseFloat(result.lat);
-            const lng = parseFloat(result.lon);
-            
-            this.map.setView([lat, lng], 15);
-            
-            if (this.marker) {
-                this.marker.setLatLng([lat, lng]);
-            } else {
-                this.marker = L.marker([lat, lng]).addTo(this.map);
+            if (!this.setCoordinates({ lat: result.lat, lng: result.lon })) {
+                return;
             }
 
-            this.lat = lat;
-            this.lng = lng;
-            
-            this.localSearchResults = [];
-            this.searchQuery = '';
-
-            this.$dispatch('close-modal', { id: 'location-search-modal' });
+            this.resetSearchState();
+            this.$dispatch('close-modal', { id: this.config.searchModalId });
         },
 
         setTileLayer: function(providerName) {
@@ -255,7 +267,10 @@ export default function leafletMapPicker({ location, config }) {
                 this.map.removeLayer(this.tileLayer);
             }
 
-            const provider = this.tileProviders[providerName] || this.tileProviders.openstreetmap;
+            const resolvedProviderName = this.tileProviders[providerName] ? providerName : 'openstreetmap';
+            const provider = this.tileProviders[resolvedProviderName] || this.tileProviders.openstreetmap;
+
+            this.config.tileProvider = resolvedProviderName;
 
             this.tileLayer = L.tileLayer(provider.url, provider.options).addTo(this.map);
         },
@@ -272,6 +287,7 @@ export default function leafletMapPicker({ location, config }) {
                     label.textContent = this.config.map_type_text;
 
                     const select = L.DomUtil.create('select', '', container);
+                    select.setAttribute('aria-label', this.config.map_type_text || 'Map Type');
 
                     Object.keys(this.tileProviders).forEach(key => {
                         const option = L.DomUtil.create('option', '', select);
@@ -311,16 +327,16 @@ export default function leafletMapPicker({ location, config }) {
                 },
                 onAdd: (map) => {
                     const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                    const button = L.DomUtil.create('a', 'location-button', container);
+                    const button = L.DomUtil.create('button', 'location-button', container);
                     button.innerHTML = `
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                     `;
+                    button.type = 'button';
                     button.title = this.config.myLocationButtonLabel;
-                    button.href = '#';
-                    button.role = 'button';
+                    button.setAttribute('aria-label', this.config.myLocationButtonLabel);
                     button.style.display = 'flex';
                     button.style.alignItems = 'center';
                     button.style.justifyContent = 'center';
@@ -328,8 +344,10 @@ export default function leafletMapPicker({ location, config }) {
                     button.style.height = '30px';
                     button.setAttribute('x-tooltip.raw', this.config.myLocationButtonLabel);
 
+                    L.DomEvent.disableClickPropagation(container);
+                    L.DomEvent.disableScrollPropagation(container);
+
                     L.DomEvent.on(button, 'click', (e) => {
-                        L.DomEvent.preventDefault(e);
                         this.goToCurrentLocation();
                     });
 
@@ -341,83 +359,70 @@ export default function leafletMapPicker({ location, config }) {
         },
 
         goToCurrentLocation: function () {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const latLng = {
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        };
+            if (!window.isSecureContext) {
+                this.notifyLocationError('secure_context_required');
 
-                        this.setCoordinates(latLng);
-                        this.marker.setLatLng([latLng.lat, latLng.lng]);
-                        this.map.setView([latLng.lat, latLng.lng], 15);
-                        this.lat = latLng.lat;
-                        this.lng = latLng.lng;
-                    },
-                    (error) => {
-                        if (window.location.protocol !== 'https:') {
-                            new FilamentNotification().title('Need\'s HTTPS').body('Secure connection (HTTPS) required to access location information').danger().send();
-                            return;
-                        }
-
-                        new FilamentNotification().title('Error').body('Could not get location. Please check console errors').danger().send();
-                        console.error('Error getting location:', error);
-                    }
-                );
-            } else {
-                new FilamentNotification().title('No Browser Support').body('Your browser does not support location services').danger().send();
+                return;
             }
+
+            if (!navigator.geolocation) {
+                this.notifyLocationError('browser_location_not_supported');
+
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    if (this.destroyed) {
+                        return;
+                    }
+
+                    this.setCoordinates({
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                    });
+                },
+                (error) => {
+                    if (this.destroyed) {
+                        return;
+                    }
+
+                    this.notifyLocationError(getGeolocationErrorMessageKey(error));
+                },
+                getGeolocationOptions(this.config),
+            );
         },
 
         markerMoved: function (event) {
             const position = event.latLng.toJSON();
-            this.lat = position.lat;
-            this.lng = position.lng;
             this.setCoordinates(position);
-            this.marker.setLatLng([position.lat, position.lng]);
-            this.map.panTo([position.lat, position.lng]);
         },
 
-        updateMapFromAlpine: function () {
-            const location = this.getCoordinates();
-            const markerPosition = this.marker.getLatLng();
-
-            if (
-                !(
-                    location.lat === markerPosition.lat &&
-                    location.lng === markerPosition.lng
-                )
-            ) {
-                this.updateMap(location);
+        updateMap: function (position, shouldPan = true) {
+            if (this.destroyed || !this.map || !this.marker) {
+                return false;
             }
-        },
 
-        updateMap: function (position) {
             this.marker.setLatLng([position.lat, position.lng]);
-            this.map.panTo([position.lat, position.lng]);
+
+            if (shouldPan) {
+                this.map.panTo([position.lat, position.lng]);
+            }
+
             this.lat = position.lat;
             this.lng = position.lng;
+
+            return true;
         },
 
-        setCoordinates: function (position) {
-            this.$wire.set(this.config.statePath, position);
-        },
-
-        getCoordinates: function () {
-            let location = this.$wire.get(this.config.statePath);
-            if (
-                location === null ||
-                !location.hasOwnProperty('lat') ||
-                !location.hasOwnProperty('lng')
-            ) {
-                location = {
-                    lat: this.config.defaultLocation.lat,
-                    lng: this.config.defaultLocation.lng,
-                };
+        observeMapContainer: function () {
+            if (typeof ResizeObserver === 'undefined') {
+                return;
             }
 
-            return location;
-        }
+            this.resizeObserver?.disconnect();
+            this.resizeObserver = new ResizeObserver(() => this.map?.invalidateSize(false));
+            this.resizeObserver.observe(this.$refs.mapContainer);
+        },
     }
 }

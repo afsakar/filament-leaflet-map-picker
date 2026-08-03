@@ -2,8 +2,8 @@
 
 namespace Afsakar\LeafletMapPicker;
 
+use Afsakar\LeafletMapPicker\Support\CoordinateNormalizer;
 use Closure;
-use Exception;
 use Filament\Forms\Components\Concerns\CanBeReadOnly;
 use Filament\Forms\Components\Field;
 use JsonException;
@@ -28,6 +28,12 @@ class LeafletMapPicker extends Field
 
     protected string | Closure $tileProvider = 'openstreetmap';
 
+    protected string | Closure $geocoderEndpoint = 'https://nominatim.openstreetmap.org/search';
+
+    protected int | Closure $geolocationTimeout = 10000;
+
+    protected bool | Closure $geolocationHighAccuracy = false;
+
     protected array | Closure $customTiles = [];
 
     protected string | Closure $markerIconPath = '';
@@ -36,7 +42,7 @@ class LeafletMapPicker extends Field
 
     protected bool $showTileControl = true;
 
-    private int $precision = 8;
+    protected bool | Closure $showCoordinateInputs = false;
 
     protected ?array $customMarker = null;
 
@@ -47,16 +53,28 @@ class LeafletMapPicker extends Field
             'lat' => 37.9106,
             'lng' => 40.2365,
         ],
-        'statePath' => '',
         'defaultZoom' => 13,
         'myLocationButtonLabel' => '',
+        'searchButtonLabel' => '',
+        'searchModalId' => '',
+        'geocoderEndpoint' => 'https://nominatim.openstreetmap.org/search',
+        'geolocationHighAccuracy' => false,
+        'geolocationTimeout' => 10000,
         'tileProvider' => 'openstreetmap',
         'customTiles' => [],
         'customMarker' => null,
+        'messages' => [],
         'markerIconPath' => '',
         'markerShadowPath' => '',
-        'showTaleControl' => false,
+        'showTileControl' => false,
     ];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->dehydrateStateUsing(fn (mixed $state): ?array => CoordinateNormalizer::normalize($state));
+    }
 
     public function hideTileControl(): static
     {
@@ -68,6 +86,18 @@ class LeafletMapPicker extends Field
     public function getTileControlVisibility(): bool
     {
         return $this->evaluate($this->showTileControl);
+    }
+
+    public function showCoordinateInputs(bool | Closure $show = true): static
+    {
+        $this->showCoordinateInputs = $show;
+
+        return $this;
+    }
+
+    public function getShowCoordinateInputs(): bool
+    {
+        return $this->evaluate($this->showCoordinateInputs);
     }
 
     public function customMarker(array $config): static
@@ -91,22 +121,9 @@ class LeafletMapPicker extends Field
 
     public function getDefaultLocation(): array
     {
-        $position = $this->evaluate($this->defaultLocation);
-
-        if (is_array($position)) {
-            if (array_key_exists('lat', $position) && array_key_exists('lng', $position)) {
-                return $position;
-            } elseif (is_numeric($position[0]) && is_numeric($position[1])) {
-                return [
-                    'lat' => is_string($position[0]) ? round(floatval($position[0]), $this->precision) : $position[0],
-                    'lng' => is_string($position[1]) ? round(floatval($position[1]), $this->precision) : $position[1],
-                ];
-            }
-        }
-
-        return [
-            'lat' => 41.0082,
-            'lng' => 28.9784,
+        return CoordinateNormalizer::normalize($this->evaluate($this->defaultLocation)) ?? [
+            'lat' => 37.9106,
+            'lng' => 40.2365,
         ];
     }
 
@@ -190,6 +207,42 @@ class LeafletMapPicker extends Field
         return $this->evaluate($this->tileProvider);
     }
 
+    public function geocoderEndpoint(string | Closure $geocoderEndpoint): static
+    {
+        $this->geocoderEndpoint = $geocoderEndpoint;
+
+        return $this;
+    }
+
+    public function getGeocoderEndpoint(): string
+    {
+        return $this->evaluate($this->geocoderEndpoint);
+    }
+
+    public function geolocationTimeout(int | Closure $geolocationTimeout): static
+    {
+        $this->geolocationTimeout = $geolocationTimeout;
+
+        return $this;
+    }
+
+    public function getGeolocationTimeout(): int
+    {
+        return $this->evaluate($this->geolocationTimeout);
+    }
+
+    public function geolocationHighAccuracy(bool | Closure $geolocationHighAccuracy = true): static
+    {
+        $this->geolocationHighAccuracy = $geolocationHighAccuracy;
+
+        return $this;
+    }
+
+    public function getGeolocationHighAccuracy(): bool
+    {
+        return $this->evaluate($this->geolocationHighAccuracy);
+    }
+
     public function customTiles(array | Closure $customTiles): static
     {
         $this->customTiles = $customTiles;
@@ -236,38 +289,40 @@ class LeafletMapPicker extends Field
                 'draggable' => $this->getDraggable(),
                 'clickable' => $this->getClickable(),
                 'defaultLocation' => $this->getDefaultLocation(),
-                'statePath' => $this->getStatePath(),
                 'defaultZoom' => $this->getDefaultZoom(),
                 'myLocationButtonLabel' => $this->getMyLocationButtonLabel(),
+                'searchButtonLabel' => __('filament-leaflet-map-picker::leaflet-map-picker.search_location'),
+                'searchModalId' => "{$this->getId()}-location-search-modal",
+                'geocoderEndpoint' => $this->getGeocoderEndpoint(),
+                'geolocationHighAccuracy' => $this->getGeolocationHighAccuracy(),
+                'geolocationTimeout' => $this->getGeolocationTimeout(),
                 'tileProvider' => $this->getTileProvider(),
                 'customTiles' => $this->getCustomTiles(),
                 'customMarker' => $this->getCustomMarker(),
+                'messages' => [
+                    'search_failed' => __('filament-leaflet-map-picker::leaflet-map-picker.search_failed'),
+                    'rate_limit_wait' => __('filament-leaflet-map-picker::leaflet-map-picker.rate_limit_wait'),
+                    'secure_context_required' => __('filament-leaflet-map-picker::leaflet-map-picker.secure_context_required'),
+                    'browser_location_not_supported' => __('filament-leaflet-map-picker::leaflet-map-picker.browser_location_not_supported'),
+                    'location_permission_denied' => __('filament-leaflet-map-picker::leaflet-map-picker.location_permission_denied'),
+                    'location_unavailable' => __('filament-leaflet-map-picker::leaflet-map-picker.location_unavailable'),
+                    'location_timeout' => __('filament-leaflet-map-picker::leaflet-map-picker.location_timeout'),
+                ],
                 'markerIconPath' => $this->getMarkerIconPath(),
                 'markerShadowPath' => $this->getMarkerShadowPath(),
                 'map_type_text' => __('filament-leaflet-map-picker::leaflet-map-picker.map_type'),
                 'is_disabled' => $this->isDisabled() || $this->isReadOnly(),
                 'showTileControl' => $this->showTileControl,
-                'searchButtonLabel' => __('filament-leaflet-map-picker::leaflet-map-picker.search_location'),
             ]),
-            JSON_THROW_ON_ERROR
+            JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION
         );
     }
 
     /**
      * @throws JsonException
      */
-    public function getState(): array
+    public function getState(): ?array
     {
-        $state = parent::getState();
-
-        if (is_array($state)) {
-            return $state;
-        } else {
-            try {
-                return @json_decode($state, true, 512, JSON_THROW_ON_ERROR);
-            } catch (Exception $e) {
-                return $this->getDefaultLocation();
-            }
-        }
+        return CoordinateNormalizer::normalize(parent::getState());
     }
 }

@@ -1,3 +1,8 @@
+@php
+    $modalId = $field->getId() . '-location-search-modal';
+    $searchLabel = __('filament-leaflet-map-picker::leaflet-map-picker.search_location');
+@endphp
+
 <x-dynamic-component
     :component="$getFieldWrapperView()"
     :field="$field"
@@ -23,6 +28,45 @@
                 style="height: {{ $getHeight() }}; z-index: 1;"
             ></div>
 
+            @if ($getShowCoordinateInputs())
+                <div class="grid grid-cols-1 gap-4 border-t border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-700 sm:grid-cols-2">
+                    <div>
+                        <label for="{{ $field->getId() }}-latitude" class="fi-fo-field-label-content text-sm font-medium">
+                            {{ __('filament-leaflet-map-picker::leaflet-map-picker.latitude') }}
+                        </label>
+                        <x-filament::input.wrapper class="mt-1">
+                            <x-filament::input
+                                id="{{ $field->getId() }}-latitude"
+                                type="number"
+                                step="any"
+                                inputmode="decimal"
+                                x-model="coordinateInputs.lat"
+                                x-on:change="syncCoordinatesFromInputs()"
+                                :disabled="$field->isDisabled()"
+                                :readonly="$field->isReadOnly()"
+                            />
+                        </x-filament::input.wrapper>
+                    </div>
+
+                    <div>
+                        <label for="{{ $field->getId() }}-longitude" class="fi-fo-field-label-content text-sm font-medium">
+                            {{ __('filament-leaflet-map-picker::leaflet-map-picker.longitude') }}
+                        </label>
+                        <x-filament::input.wrapper class="mt-1">
+                            <x-filament::input
+                                id="{{ $field->getId() }}-longitude"
+                                type="number"
+                                step="any"
+                                inputmode="decimal"
+                                x-model="coordinateInputs.lng"
+                                x-on:change="syncCoordinatesFromInputs()"
+                                :disabled="$field->isDisabled()"
+                                :readonly="$field->isReadOnly()"
+                            />
+                        </x-filament::input.wrapper>
+                    </div>
+                </div>
+            @else
             <div class="p-4 bg-gray-50 border-t border-gray-200 dark:bg-gray-700 dark:border-gray-600" x-show="lat !== null && lng !== null">
                 <div class="flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 mr-2 dark:text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -31,30 +75,37 @@
                     </svg>
                     <p class="text-sm text-gray-700 dark:text-gray-200">
                         {{ __('filament-leaflet-map-picker::leaflet-map-picker.selected_locations') }}
-                        <span class="font-medium" x-text="lat ? lat.toFixed(6) : ''"></span>,
-                        <span class="font-medium" x-text="lng ? lng.toFixed(6) : ''"></span>
+                        <span class="font-medium" x-text="lat !== null ? lat.toFixed(6) : ''"></span>,
+                        <span class="font-medium" x-text="lng !== null ? lng.toFixed(6) : ''"></span>
                     </p>
                 </div>
             </div>
+            @endif
         </div>
 
         <x-filament::modal
             slide-over
-            id="location-search-modal"
+            :id="$modalId"
             width="md"
-            x-on:open-modal.window="if ($event.detail.id === 'location-search-modal') searchQuery = ''; localSearchResults = []"
+            x-on:open-modal.window="if ($event.detail.id === config.searchModalId) resetSearchState()"
         >
             <x-slot name="heading">
-                {{ __('filament-leaflet-map-picker::leaflet-map-picker.search_location') }}
+                {{ $searchLabel }}
             </x-slot>
 
             <div class="space-y-4">
                 <div class="relative">
+                    <label for="{{ $modalId }}-search-input" class="sr-only">
+                        {{ $searchLabel }}
+                    </label>
                     <x-filament::input.wrapper  suffix-icon="heroicon-m-magnifying-glass">
                         <x-filament::input
+                            id="{{ $modalId }}-search-input"
                             type="text"
                             x-model="searchQuery"
-                            x-on:input="debounceSearch()"
+                            x-on:input.debounce.500ms="submitSearch()"
+                            x-on:keydown.enter.prevent="submitSearch()"
+                            aria-label="{{ $searchLabel }}"
                             placeholder="{{ __('filament-leaflet-map-picker::leaflet-map-picker.search_placeholder') }}"
                         />
                     </x-filament::input.wrapper>
@@ -76,7 +127,7 @@
                             <li class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
                                 <button
                                     type="button"
-                                    @click="selectLocationFromModal(result); $dispatch('close-modal', { id: 'location-search-modal' })"
+                                    @click="selectLocationFromModal(result)"
                                     class="w-full text-left px-4 py-3 flex items-start gap-3"
                                 >
                                     <div class="flex-shrink-0 mt-0.5">
@@ -109,7 +160,19 @@
             </div>
 
             <x-slot name="footer">
-                <x-filament::button color="gray" @click="$dispatch('close-modal', { id: 'location-search-modal' })">
+                <x-filament::button
+                    type="button"
+                    x-bind:disabled="isSearching || String(searchQuery ?? '').trim().length < 3"
+                    @click="submitSearch()"
+                >
+                    {{ $searchLabel }}
+                </x-filament::button>
+
+                <x-filament::button
+                    type="button"
+                    color="gray"
+                    @click="resetSearchState(); $dispatch('close-modal', { id: config.searchModalId })"
+                >
                     {{ __('filament-leaflet-map-picker::leaflet-map-picker.cancel') }}
                 </x-filament::button>
             </x-slot>

@@ -2,6 +2,16 @@
 
 All notable changes to `filament-leaflet-map-picker` will be documented in this file.
 
+## v3.0.0
+
+### What's Changed
+
+- add unified support documentation for Filament 4/5 and Laravel 12/13
+- document the canonical `{lat, lng}` state shape and legacy input migration path
+- include manual state-to-map synchronization behavior in the release notes
+- document search, tile, geolocation, attribution, and Nominatim policy boundaries
+- keep Filament 3 users on the v2 release line instead of this v3 target
+
 ## v2.0.0 - 2025-10-02
 
 ### What's Changed

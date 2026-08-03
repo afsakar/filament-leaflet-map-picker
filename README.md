@@ -12,45 +12,70 @@ A Filament Forms component that provides an interactive Leaflet map for selectin
 ## Features
 
 - Interactive map for location selection
-- Customizable map height
-- Default location configuration
-- Adjustable zoom level
+- Canonical `{ lat, lng }` state with legacy `[lat, lng]` and JSON string input support
+- Adjustable zoom level and map height
 - Draggable and clickable markers
-- "My Location" button for quick navigation to user's current position
-- Support for different tile providers (OpenStreetMap by default)
-- Custom tile layer support
+- "My Location" button for quick navigation to the user's current position
+- Search modal backed by an explicit-submit geocoder request
+- OpenStreetMap and Esri tile presets plus custom HTTPS tile layers
 - Custom marker configuration
+- Read-only display mode and Infolist entry support
 
 ![Screenshot](https://raw.githubusercontent.com/afsakar/filament-leaflet-map-picker/main/art/sc-default.png "Default")
 
+## Compatibility
+
+| Package line | Filament | Laravel | PHP | Notes |
+| --- | --- | --- | --- | --- |
+| v3.0.0 target | 4.x | 12.x | 8.2+ | Supported in this line |
+| v3.0.0 target | 4.x | 13.x | 8.3+ | Supported in this line |
+| v3.0.0 target | 5.x | 12.x | 8.2+ | Host app must provide Livewire 4 and Tailwind CSS 4 |
+| v3.0.0 target | 5.x | 13.x | 8.3+ | Host app must provide Livewire 4 and Tailwind CSS 4 |
+| v2.x | 3.x | Existing v2 support matrix | See v2 docs | Filament 3 stays on the v2 line |
+
+Filament 3 support is intentionally not part of the v3.0.0 package line. If you are staying on Filament 3, keep using the v2 releases.
+
 ## Installation
 
-You can install the package via composer:
+Install the PHP package in your Filament app:
 
 ```bash
 composer require afsakar/filament-leaflet-map-picker
+```
 
+The package auto-discovers its service provider. Filament assets are registered with `FilamentAsset` and loaded on demand through the component views' `x-load`, `x-load-src`, and `x-load-css` attributes, so you do not need to copy the compiled JS/CSS into your app for normal usage.
+
+If you want Leaflet's image assets published locally, you can still publish them:
+
+```bash
 php artisan vendor:publish --tag="filament-leaflet-map-picker-assets"
 ```
 
-### Database Migration
+You can publish translations with:
 
-Create a column in your table to store the location data. You can use a `text` or `json` column type:
+```bash
+php artisan vendor:publish --tag="filament-leaflet-map-picker-translations"
+```
+
+Optionally, you can publish the views with:
+
+```bash
+php artisan vendor:publish --tag="filament-leaflet-map-picker-views"
+```
+
+## Database and model setup
+
+Store the coordinates in a `json` or `text` column:
 
 ```php
 Schema::create('properties', function (Blueprint $table) {
     $table->id();
-    // Other columns
-    $table->text('location')->nullable(); // Stores coordinates as JSON string
-    // OR
-    $table->json('location')->nullable(); // Alternative approach
+    $table->json('location')->nullable();
     $table->timestamps();
 });
 ```
 
-### Preparing the models
-
-To use the LeafletMapPicker component, you need to prepare your database and model to store geographical coordinates. The component stores location data as a JSON string in the format `[lat, lng]`.
+Cast the attribute to `array` in your model:
 
 ```php
 namespace App\Models;
@@ -60,7 +85,6 @@ use Illuminate\Database\Eloquent\Model;
 class Property extends Model
 {
     protected $fillable = [
-        // Other fillable fields
         'location',
     ];
 
@@ -70,40 +94,42 @@ class Property extends Model
 }
 ```
 
-You can publish the lang files with:
+## Canonical state format and migration notes
 
-```bash
-php artisan vendor:publish --tag="filament-leaflet-map-picker-translations"
+The canonical saved state for v3 is:
+
+```json
+{ "lat": 41.0082, "lng": 28.9784 }
 ```
 
-Optionally, you can publish the views using
+The package still reads these legacy inputs while you migrate existing data:
 
-```bash
-php artisan vendor:publish --tag="filament-leaflet-map-picker-views"
-```
+- legacy arrays like `[41.0082, 28.9784]`
+- JSON strings like `"{\"lat\":41.0082,\"lng\":28.9784}"`
+
+New writes should use the canonical object shape. If you already cast the column to `array`, Laravel will persist the object-shaped array cleanly in a `json` column.
 
 ## Usage
 
 ### Form
+
 ```php
 use Afsakar\LeafletMapPicker\LeafletMapPicker;
 
-// Basic usage
-LeafletMapPicker::make('location')
-    ->label('Select Location')
-
-// Advanced usage with customization
 LeafletMapPicker::make('location')
     ->label('Property Location')
     ->height('500px')
-    ->defaultLocation([41.0082, 28.9784]) // Istanbul coordinates
+    ->defaultLocation(['lat' => 41.0082, 'lng' => 28.9784])
     ->defaultZoom(15)
-    ->draggable() // default true
-    ->clickable() // default true
+    ->draggable()
+    ->clickable()
     ->myLocationButtonLabel('Go to My Location')
+    ->geocoderEndpoint('https://nominatim.openstreetmap.org/search')
+    ->geolocationTimeout(10000)
+    ->geolocationHighAccuracy()
     ->hideTileControl()
-    ->readOnly() // default false, when you set this to true, the marker will not be draggable or clickable and current location and search location buttons will be hidden
-    ->tileProvider('openstreetmap') // default options: openstreetmap, google, googleSatellite, googleTerrain, googleHybrid, esri
+    ->readOnly()
+    ->tileProvider('openstreetmap')
     ->customTiles([
         'mapbox' => [
             'url' => 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}',
@@ -112,32 +138,71 @@ LeafletMapPicker::make('location')
                 'id' => 'mapbox/streets-v11',
                 'maxZoom' => 19,
                 'accessToken' => 'YOUR_MAPBOX_TOKEN',
-            ]
-        ]
+            ],
+        ],
     ])
     ->customMarker([
         'iconUrl' => asset('pin-2.png'),
         'iconSize' => [38, 38],
         'iconAnchor' => [19, 38],
-        'popupAnchor' => [0, -38]
-    ])
+        'popupAnchor' => [0, -38],
+    ]);
 ```
+
+To show editable latitude and longitude inputs inside the picker, enable them on the picker and do not add separate sibling inputs for the same `location` state path:
+
+```php
+LeafletMapPicker::make('location')
+    ->showCoordinateInputs();
+```
+
+When enabled, the selected-location summary is hidden. The default is `false`, which keeps the summary visible.
+
+The simplest canonical default location example is:
+
+```php
+LeafletMapPicker::make('location')
+    ->defaultLocation(['lat' => 41.0082, 'lng' => 28.9784]);
+```
+
+### State synchronization behavior
+
+- Clicking the map writes `{ lat, lng }` into the field state.
+- Dragging the marker writes `{ lat, lng }` into the field state.
+- Search result selection writes `{ lat, lng }` into the field state.
+- Geolocation writes `{ lat, lng }` into the field state.
+- When `showCoordinateInputs()` is enabled, editing either coordinate updates the map and the canonical field state after the input changes.
+- If the Livewire/Alpine state is changed manually to a valid coordinate object, legacy array, or supported JSON string, the marker and map recenter to match it.
+
+### Table column
+
+```php
+use Afsakar\LeafletMapPicker\LeafletMapPickerColumn;
+
+public function table(Table $table): Table
+{
+    return $table->columns([
+        LeafletMapPickerColumn::make('location')
+            ->label('Location')
+            ->height('240px'),
+    ]);
+}
+```
+
+The column renders a compact thumbnail: it marks the location with a small dot instead of a pin and hides the attribution control, which would otherwise cover most of the tile. The default height is `50px`.
+
+The column is read-only. It accepts the canonical `{ lat, lng }` object and legacy arrays or JSON strings. Null and invalid values use the configured default only for visual map placement; they are not shown as a selected record location and never change the row state.
 
 ### Infolist
 
 ```php
 use Afsakar\LeafletMapPicker\LeafletMapPickerEntry;
 
-// Basic usage
-LeafletMapPickerEntry::make('location')
-    ->label('Location')
-
-// Advanced usage with customization
 LeafletMapPickerEntry::make('location')
     ->label('Property Location')
     ->height('500px')
-    ->defaultLocation([41.0082, 28.9784])
-    ->tileProvider('openstreetmap') // default options: openstreetmap, google, googleSatellite, googleTerrain, googleHybrid, esri
+    ->defaultLocation(['lat' => 41.0082, 'lng' => 28.9784])
+    ->tileProvider('openstreetmap')
     ->hideTileControl()
     ->customTiles([
         'mapbox' => [
@@ -147,15 +212,42 @@ LeafletMapPickerEntry::make('location')
                 'id' => 'mapbox/streets-v11',
                 'maxZoom' => 19,
                 'accessToken' => 'YOUR_MAPBOX_TOKEN',
-            ]
-        ]
+            ],
+        ],
     ])
     ->customMarker([
         'iconUrl' => asset('pin-2.png'),
         'iconSize' => [38, 38],
         'iconAnchor' => [19, 38],
-        'popupAnchor' => [0, -38]
-    ])
+        'popupAnchor' => [0, -38],
+    ]);
+```
+
+## Search, tile, and geolocation policy
+
+- Built-in tile presets are limited to `openstreetmap` and `esri`.
+- OpenStreetMap tile usage must stay on HTTPS and keep the provider's attribution visible.
+- The default browser geocoder endpoint is `https://nominatim.openstreetmap.org/search`.
+- Public Nominatim usage here is explicit-submit only. The package does not support autocomplete against the public endpoint.
+- Keep public Nominatim traffic to roughly 1 request per second.
+- Your application is responsible for any required `Referer`, `User-Agent`, API key, custom tile contract, attribution, or provider-specific compliance.
+- The browser-side package does not spoof a `User-Agent`, and browser control over `Referer` is limited by the host app and browser policy.
+- If you need higher traffic, backend credentials, bulk/offline tiles, or policy-controlled geocoding, use your own backend proxy or a commercial/provider-managed geocoder instead of the public endpoint.
+- Offline/bulk tile distribution is outside this package; if you need it, bring your own compliant tile infrastructure.
+
+## Development checks
+
+Run the package checks from the repository root:
+
+```bash
+composer install
+npm install
+npm run build
+composer validate --no-check-publish
+composer lint
+composer phpstan
+composer test
+npm run test:js
 ```
 
 ## Screenshots
@@ -168,12 +260,6 @@ Custom Marker:
 
 Custom Tile:
 ![Screenshot](https://raw.githubusercontent.com/afsakar/filament-leaflet-map-picker/main/art/sc-custom-tile.png "Custom Tile")
-
-## Testing
-
-```bash
-composer test
-```
 
 ## Changelog
 
