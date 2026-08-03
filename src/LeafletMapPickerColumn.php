@@ -1,0 +1,65 @@
+<?php
+
+namespace Afsakar\LeafletMapPicker;
+
+use Afsakar\LeafletMapPicker\Support\CoordinateNormalizer;
+use Closure;
+use Filament\Tables\Columns\Column;
+use JsonException;
+
+class LeafletMapPickerColumn extends Column
+{
+    protected string $view = 'filament-leaflet-map-picker::leaflet-map-picker-column';
+
+    protected string | Closure $height = '240px';
+
+    protected mixed $columnState;
+
+    protected bool $hasColumnState = false;
+
+    public function state(mixed $state): static
+    {
+        $this->columnState = $state;
+        $this->hasColumnState = true;
+
+        return parent::state($state);
+    }
+
+    public function height(string | Closure $height): static
+    {
+        $this->height = $height;
+
+        return $this;
+    }
+
+    public function getHeight(): string
+    {
+        return $this->evaluate($this->height);
+    }
+
+    public function getNormalizedState(): ?array
+    {
+        return CoordinateNormalizer::normalize($this->hasColumnState ? $this->evaluate($this->columnState) : $this->getState());
+    }
+
+    /**
+     * @throws JsonException
+     */
+    public function getMapConfig(): string
+    {
+        return json_encode([
+            'defaultZoom' => 13,
+            'defaultLocation' => [
+                'lat' => 37.9106,
+                'lng' => 40.2365,
+            ],
+            'tileProvider' => 'openstreetmap',
+            'showTileControl' => true,
+            'customMarker' => null,
+            'customTiles' => [],
+            'markerIconPath' => asset('vendor/leaflet-map-picker/images/marker-icon-2x.png'),
+            'markerShadowPath' => asset('vendor/leaflet-map-picker/images/marker-shadow.png'),
+            'map_type_text' => __('filament-leaflet-map-picker::leaflet-map-picker.map_type'),
+        ], JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION);
+    }
+}
