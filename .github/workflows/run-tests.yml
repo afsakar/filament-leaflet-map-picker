@@ -7,6 +7,30 @@ on:
     branches: [main]
 
 jobs:
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Test JavaScript
+        run: npm run test:js
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Verify generated assets
+        run: git diff --exit-code -- resources/dist
+
   test:
     runs-on: ubuntu-latest
     strategy:

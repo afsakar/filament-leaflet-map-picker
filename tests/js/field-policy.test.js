@@ -201,6 +201,75 @@ test('scheduleModalSearch reports geocoder failures without surfacing aborts', a
     assert.deepEqual(subject.notifications, []);
 });
 
+test('scheduleModalSearch resolves proxy endpoints and preserves their query parameters', async () => {
+    const timers = createTimerHarness();
+    const urls = [];
+    const subject = createSearchSubject({
+        config: {
+            geocoderEndpoint: '/api/geocode?key=secret',
+        },
+    });
+
+    scheduleModalSearch(subject, 'Istanbul', {
+        now: () => 6_000,
+        origin: 'https://app.test',
+        setTimeout: timers.setTimeout,
+        clearTimeout: timers.clearTimeout,
+        fetch: async (url) => {
+            urls.push(String(url));
+
+            return { ok: true, json: async () => [] };
+        },
+    });
+
+    await timers.timers[0].callback();
+
+    assert.deepEqual(urls, [
+        'https://app.test/api/geocode?key=secret&format=json&q=Istanbul&limit=8',
+    ]);
+});
+
+test('scheduleModalSearch shares public Nominatim pacing across components', () => {
+    const timers = createTimerHarness();
+    const first = createSearchSubject();
+    const second = createSearchSubject();
+    const runtime = {
+        now: () => 8_000,
+        setTimeout: timers.setTimeout,
+        clearTimeout: timers.clearTimeout,
+        fetch: async () => ({ ok: true, json: async () => [] }),
+    };
+
+    scheduleModalSearch(first, 'first place', runtime);
+    scheduleModalSearch(second, 'second place', runtime);
+
+    assert.equal(timers.timers[0].delay, 0);
+    assert.equal(timers.timers[1].delay, 1000);
+});
+
+test('scheduleModalSearch ignores a response that resolves after destroy', async () => {
+    const timers = createTimerHarness();
+    const json = createDeferred();
+    const subject = createSearchSubject();
+
+    scheduleModalSearch(subject, 'late result', {
+        now: () => 10_000,
+        setTimeout: timers.setTimeout,
+        clearTimeout: timers.clearTimeout,
+        fetch: async () => ({ ok: true, json: () => json.promise }),
+    });
+
+    const pendingSearch = timers.timers[0].callback();
+    await flushPromises();
+
+    subject.destroyed = true;
+    json.resolve([{ display_name: 'late result' }]);
+    await pendingSearch;
+
+    assert.deepEqual(subject.localSearchResults, []);
+    assert.deepEqual(subject.notifications, []);
+});
+
 test('getGeolocationOptions and error keys follow the configured policy', () => {
     assert.deepEqual(
         getGeolocationOptions({

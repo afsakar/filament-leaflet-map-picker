@@ -1,3 +1,6 @@
+const PUBLIC_NOMINATIM_ENDPOINT = 'https://nominatim.openstreetmap.org/search';
+let publicNominatimNextSearchAt = 0;
+
 export function getGeolocationOptions(config = {}) {
     return {
         enableHighAccuracy: Boolean(config.geolocationHighAccuracy),
@@ -25,6 +28,7 @@ export function scheduleModalSearch(component, query, overrides = {}) {
         clearTimeout: globalThis.clearTimeout.bind(globalThis),
         AbortController: globalThis.AbortController,
         fetch: globalThis.fetch.bind(globalThis),
+        origin: globalThis.location?.origin,
         ...overrides,
     };
 
@@ -43,24 +47,46 @@ export function scheduleModalSearch(component, query, overrides = {}) {
     }
 
     const requestId = (component.searchRequestId ?? 0) + 1;
-    const wait = Math.max(0, 1000 - (runtime.now() - (component.lastSearchAt ?? 0)));
+    const now = runtime.now();
+    let url;
+
+    try {
+        url = new URL(component.config.geocoderEndpoint, runtime.origin);
+    } catch {
+        url = null;
+    }
+
+    const isPublicNominatim = url?.origin === new URL(PUBLIC_NOMINATIM_ENDPOINT).origin
+        && url.pathname === new URL(PUBLIC_NOMINATIM_ENDPOINT).pathname;
+    let wait = Math.max(0, 1000 - (now - (component.lastSearchAt ?? 0)));
+
+    if (isPublicNominatim) {
+        const scheduledAt = Math.max(now, publicNominatimNextSearchAt);
+        wait = scheduledAt - now;
+        publicNominatimNextSearchAt = scheduledAt + 1000;
+    }
 
     component.searchRequestId = requestId;
     component.localSearchResults = [];
     component.isSearching = true;
     component.searchTimeout = runtime.setTimeout(async () => {
+        if (component.destroyed || component.searchRequestId !== requestId) {
+            return;
+        }
+
         component.lastSearchAt = runtime.now();
 
         const controller = new runtime.AbortController();
         component.searchController = controller;
 
         try {
-            const url = new URL(component.config.geocoderEndpoint);
-            url.search = new URLSearchParams({
-                format: 'json',
-                q: normalizedQuery,
-                limit: '8',
-            }).toString();
+            if (!url) {
+                throw new TypeError('Invalid geocoder endpoint');
+            }
+
+            url.searchParams.set('format', 'json');
+            url.searchParams.set('q', normalizedQuery);
+            url.searchParams.set('limit', '8');
 
             const response = await runtime.fetch(url, {
                 signal: controller.signal,
@@ -76,13 +102,13 @@ export function scheduleModalSearch(component, query, overrides = {}) {
 
             const data = await response.json();
 
-            if (component.searchRequestId !== requestId) {
+            if (component.destroyed || component.searchRequestId !== requestId) {
                 return;
             }
 
             component.localSearchResults = Array.isArray(data) ? data : [];
         } catch (error) {
-            if (error?.name === 'AbortError' || component.searchRequestId !== requestId) {
+            if (component.destroyed || error?.name === 'AbortError' || component.searchRequestId !== requestId) {
                 return;
             }
 
@@ -91,7 +117,7 @@ export function scheduleModalSearch(component, query, overrides = {}) {
                 error?.status === 429 ? 'rate_limit_wait' : 'search_failed',
             );
         } finally {
-            if (component.searchRequestId === requestId) {
+            if (!component.destroyed && component.searchRequestId === requestId) {
                 component.isSearching = false;
                 component.searchTimeout = null;
             }

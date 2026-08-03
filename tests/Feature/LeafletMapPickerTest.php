@@ -107,6 +107,32 @@ it('normalizes field state inputs without throwing or defaulting invalid values'
     'null' => [null, null],
 ]);
 
+it('dehydrates field state to canonical coordinates', function (mixed $state, ?array $expected) {
+    [, $schema] = mountTestField(LeafletMapPicker::make('coordinates'), $state);
+
+    expect($schema->getState())->toBe(['coordinates' => $expected]);
+})->with([
+    'canonical array' => [['lat' => '40.1', 'lng' => '29.2'], ['lat' => 40.1, 'lng' => 29.2]],
+    'legacy array' => [[40.1, 29.2], ['lat' => 40.1, 'lng' => 29.2]],
+    'json string' => ['{"lat":"40.1","lng":"29.2"}', ['lat' => 40.1, 'lng' => 29.2]],
+    'invalid string' => ['nope', null],
+]);
+
+it('renders null and invalid entry states without presenting the visual fallback as selected', function (mixed $state) {
+    view()->share('errors', new ViewErrorBag);
+
+    [$entry] = mountTestEntry(LeafletMapPickerEntry::make('coordinates')->state($state));
+    $html = $entry->toHtml();
+
+    expect($html)
+        ->toMatch('/location:\s*null/')
+        ->toContain('x-show="selectedCoordinates')
+        ->toContain('x-text="selectedCoordinates');
+})->with([
+    'null' => null,
+    'invalid' => 'nope',
+]);
+
 it('renders field and entry wiring with canonical coordinates', function () {
     view()->share('errors', new ViewErrorBag);
 
@@ -131,6 +157,7 @@ it('renders field and entry wiring with canonical coordinates', function () {
     expect($entryHtml)
         ->toMatch('/location:\s*\{(?:&quot;|")lat(?:&quot;|"):\s*0(?:\.0)?\s*,\s*(?:&quot;|")lng(?:&quot;|"):\s*0(?:\.0)?\}/')
         ->toContain('defaultLocation: {&quot;lat&quot;:37.9106,&quot;lng&quot;:40.2365}')
-        ->toContain('x-show="location && location.lat !== null && location.lng !== null"')
-        ->toContain('location.lat !== null ? location.lat.toFixed(6)');
+        ->toContain('map_type_text: \'Map Type\'')
+        ->toContain('x-show="selectedCoordinates && selectedCoordinates.lat !== null && selectedCoordinates.lng !== null"')
+        ->toContain('selectedCoordinates.lat !== null ? selectedCoordinates.lat.toFixed(6)');
 });

@@ -67,6 +67,13 @@ class LeafletMapPicker extends Field
         'showTileControl' => false,
     ];
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->dehydrateStateUsing(fn (mixed $state): ?array => CoordinateNormalizer::normalize($state));
+    }
+
     public function hideTileControl(): static
     {
         $this->showTileControl = false;

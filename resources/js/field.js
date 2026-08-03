@@ -68,12 +68,14 @@ export default function leafletMapPicker({ location, config }) {
 
         destroy: function () {
             this.destroyed = true;
+            this.searchRequestId += 1;
             clearTimeout(this.searchTimeout);
             this.searchController?.abort();
             this.resizeObserver?.disconnect();
             this.map?.remove();
             this.searchTimeout = null;
             this.searchController = null;
+            this.isSearching = false;
             this.resizeObserver = null;
             this.map = null;
             this.marker = null;
@@ -279,6 +281,7 @@ export default function leafletMapPicker({ location, config }) {
                     label.textContent = this.config.map_type_text;
 
                     const select = L.DomUtil.create('select', '', container);
+                    select.setAttribute('aria-label', this.config.map_type_text || 'Map Type');
 
                     Object.keys(this.tileProviders).forEach(key => {
                         const option = L.DomUtil.create('option', '', select);
@@ -374,6 +377,10 @@ export default function leafletMapPicker({ location, config }) {
                     });
                 },
                 (error) => {
+                    if (this.destroyed) {
+                        return;
+                    }
+
                     this.notifyLocationError(getGeolocationErrorMessageKey(error));
                 },
                 getGeolocationOptions(this.config),

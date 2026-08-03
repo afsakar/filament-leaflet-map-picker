@@ -15,7 +15,13 @@ function parseValue(value) {
 }
 
 function toNumber(value) {
-    if (typeof value === 'boolean' || value === null || value === undefined) {
+    if (typeof value === 'string') {
+        value = value.trim();
+
+        if (!/^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(value)) {
+            return null;
+        }
+    } else if (typeof value !== 'number') {
         return null;
     }
 

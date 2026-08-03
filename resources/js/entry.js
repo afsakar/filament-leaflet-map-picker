@@ -1,5 +1,5 @@
 import * as L from 'leaflet';
-import { resolveCoordinates } from './coordinates.js';
+import { normalizeCoordinates, resolveCoordinates } from './coordinates.js';
 import defaultTileProviders from './tile-providers.js';
 
 export default function leafletMapPickerEntry({ location, config }) {
@@ -7,6 +7,7 @@ export default function leafletMapPickerEntry({ location, config }) {
         map: null,
         marker: null,
         location: null,
+        selectedCoordinates: normalizeCoordinates(location),
         searchTimeout: null,
         searchController: null,
         resizeObserver: null,
@@ -21,6 +22,7 @@ export default function leafletMapPickerEntry({ location, config }) {
             customTiles: [],
             customMarker: null,
             showTileControl: true,
+            map_type_text: 'Map Type',
             markerIconPath: '',
             markerShadowPath: '',
         },
@@ -82,8 +84,6 @@ export default function leafletMapPickerEntry({ location, config }) {
                 markerOptions
             ).addTo(this.map);
 
-            this.location = coordinates;
-
             if (this.config.showTileControl) {
                 this.addTileSelectorControl();
             }
@@ -114,6 +114,7 @@ export default function leafletMapPickerEntry({ location, config }) {
                     const container = L.DomUtil.create('div', 'leaflet-tile-selector leaflet-bar leaflet-control');
 
                     const select = L.DomUtil.create('select', '', container);
+                    select.setAttribute('aria-label', this.config.map_type_text || 'Map Type');
 
                     Object.keys(this.tileProviders).forEach(key => {
                         const option = L.DomUtil.create('option', '', select);
