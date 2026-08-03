@@ -164,6 +164,23 @@ LeafletMapPicker::make('location')
 - Geolocation writes `{ lat, lng }` into the field state.
 - If the Livewire/Alpine state is changed manually to a valid coordinate object, legacy array, or supported JSON string, the marker and map recenter to match it.
 
+### Table column
+
+```php
+use Afsakar\LeafletMapPicker\LeafletMapPickerColumn;
+
+public function table(Table $table): Table
+{
+    return $table->columns([
+        LeafletMapPickerColumn::make('location')
+            ->label('Location')
+            ->height('240px'),
+    ]);
+}
+```
+
+The column is read-only. It accepts the canonical `{ lat, lng }` object and legacy arrays or JSON strings. Null and invalid values use the configured default only for visual map placement; they are not shown as a selected record location and never change the row state.
+
 ### Infolist
 
 ```php
