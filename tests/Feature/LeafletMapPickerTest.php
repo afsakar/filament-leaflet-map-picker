@@ -204,6 +204,7 @@ it('renders map columns with normalized read-only locations and configured heigh
             'defaultZoom' => 13,
             'defaultLocation' => ['lat' => 37.9106, 'lng' => 40.2365],
             'tileProvider' => 'openstreetmap',
+            'showTileControl' => false,
         ])
         ->and($column->getMapConfig())->toContain('"defaultZoom":13')
         ->toContain('"defaultLocation":{"lat":37.9106,"lng":40.2365}');

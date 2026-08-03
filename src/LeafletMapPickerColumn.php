@@ -54,7 +54,7 @@ class LeafletMapPickerColumn extends Column
                 'lng' => 40.2365,
             ],
             'tileProvider' => 'openstreetmap',
-            'showTileControl' => true,
+            'showTileControl' => false,
             'customMarker' => null,
             'customTiles' => [],
             'markerIconPath' => asset('vendor/leaflet-map-picker/images/marker-icon-2x.png'),
