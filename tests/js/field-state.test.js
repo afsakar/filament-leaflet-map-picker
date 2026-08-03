@@ -43,6 +43,29 @@ test('setCoordinates writes canonical entangled state and pans for user interact
     assert.deepEqual(subject.map.panToCalls, [[0, 0]]);
 });
 
+test('setCoordinates mirrors canonical state into coordinate inputs', () => {
+    const subject = createSubject({
+        coordinateInputs: { lat: '', lng: '' },
+    });
+
+    assert.equal(subject.setCoordinates({ lat: '40.1', lng: '29.2' }), true);
+    assert.deepEqual(subject.coordinateInputs, { lat: '40.1', lng: '29.2' });
+});
+
+test('coordinate inputs can update the map only after both values are valid', () => {
+    const subject = createSubject({
+        coordinateInputs: { lat: '40.1', lng: '29.2' },
+    });
+
+    assert.equal(subject.syncCoordinatesFromInputs(), true);
+    assert.deepEqual(subject.location, { lat: 40.1, lng: 29.2 });
+
+    subject.coordinateInputs.lat = '';
+
+    assert.equal(subject.syncCoordinatesFromInputs(), false);
+    assert.deepEqual(subject.location, { lat: 40.1, lng: 29.2 });
+});
+
 test('setCoordinates rejects invalid coordinates without mutating state', () => {
     const subject = createSubject({
         location: { lat: 1, lng: 2 },

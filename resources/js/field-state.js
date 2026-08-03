@@ -21,8 +21,34 @@ export function createFieldState() {
 
             this.lastValidCoordinates = normalized;
             this.location = normalized;
+            this.syncCoordinateInputs(normalized);
 
             return true;
+        },
+
+        syncCoordinateInputs(position) {
+            const normalized = normalizeCoordinates(position);
+
+            if (!normalized) {
+                return false;
+            }
+
+            this.coordinateInputs = {
+                lat: String(normalized.lat),
+                lng: String(normalized.lng),
+            };
+
+            return true;
+        },
+
+        syncCoordinatesFromInputs() {
+            const normalized = normalizeCoordinates(this.coordinateInputs);
+
+            if (!normalized) {
+                return false;
+            }
+
+            return this.setCoordinates(normalized);
         },
 
         updateMapFromAlpine(value) {
@@ -33,6 +59,8 @@ export function createFieldState() {
             }
 
             if (coordinatesEqual(normalized, this.lastValidCoordinates)) {
+                this.syncCoordinateInputs(normalized);
+
                 return;
             }
 
@@ -43,6 +71,7 @@ export function createFieldState() {
             }
 
             this.lastValidCoordinates = normalized;
+            this.syncCoordinateInputs(normalized);
         },
 
         getCoordinates() {

@@ -42,6 +42,8 @@ class LeafletMapPicker extends Field
 
     protected bool $showTileControl = true;
 
+    protected bool | Closure $showCoordinateInputs = false;
+
     protected ?array $customMarker = null;
 
     private array $mapConfig = [
@@ -84,6 +86,18 @@ class LeafletMapPicker extends Field
     public function getTileControlVisibility(): bool
     {
         return $this->evaluate($this->showTileControl);
+    }
+
+    public function showCoordinateInputs(bool | Closure $show = true): static
+    {
+        $this->showCoordinateInputs = $show;
+
+        return $this;
+    }
+
+    public function getShowCoordinateInputs(): bool
+    {
+        return $this->evaluate($this->showCoordinateInputs);
     }
 
     public function customMarker(array $config): static

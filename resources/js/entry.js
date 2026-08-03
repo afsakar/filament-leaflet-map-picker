@@ -24,6 +24,8 @@ export default function leafletMapPickerEntry({ location, config }) {
             customMarker: null,
             showTileControl: true,
             interactive: true,
+            markerStyle: 'pin',
+            showAttribution: true,
             map_type_text: 'Map Type',
             markerIconPath: '',
             markerShadowPath: '',
@@ -58,7 +60,10 @@ export default function leafletMapPickerEntry({ location, config }) {
             const coordinates = this.getCoordinates();
             const interactionOptions = getEntryInteractionOptions(this.config.interactive);
 
-            this.map = L.map(this.$refs.mapContainer, interactionOptions.map).setView(
+            this.map = L.map(this.$refs.mapContainer, {
+                ...interactionOptions.map,
+                attributionControl: this.config.showAttribution !== false,
+            }).setView(
                 [coordinates.lat, coordinates.lng],
                 this.config.defaultZoom
             );
@@ -82,10 +87,19 @@ export default function leafletMapPickerEntry({ location, config }) {
                 })
             }
 
-            this.marker = L.marker(
-                [coordinates.lat, coordinates.lng],
-                markerOptions
-            ).addTo(this.map);
+            this.marker = this.config.markerStyle === 'dot'
+                ? L.circleMarker([coordinates.lat, coordinates.lng], {
+                    ...interactionOptions.marker,
+                    radius: 5,
+                    weight: 2,
+                    color: '#ffffff',
+                    fillColor: '#ef4444',
+                    fillOpacity: 1,
+                }).addTo(this.map)
+                : L.marker(
+                    [coordinates.lat, coordinates.lng],
+                    markerOptions
+                ).addTo(this.map);
 
             if (this.config.showTileControl) {
                 this.addTileSelectorControl();

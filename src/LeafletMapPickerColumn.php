@@ -11,7 +11,7 @@ class LeafletMapPickerColumn extends Column
 {
     protected string $view = 'filament-leaflet-map-picker::leaflet-map-picker-column';
 
-    protected string | Closure $height = '240px';
+    protected string | Closure $height = '50px';
 
     public function height(string | Closure $height): static
     {
@@ -63,6 +63,10 @@ class LeafletMapPickerColumn extends Column
             'tileProvider' => 'openstreetmap',
             'showTileControl' => false,
             'interactive' => false,
+            // Thumbnails are too small for a pin and the attribution control covers
+            // most of the tile, so the column renders a bare dot instead.
+            'markerStyle' => 'dot',
+            'showAttribution' => false,
             'customMarker' => null,
             'customTiles' => [],
             'markerIconPath' => asset('vendor/leaflet-map-picker/images/marker-icon-2x.png'),

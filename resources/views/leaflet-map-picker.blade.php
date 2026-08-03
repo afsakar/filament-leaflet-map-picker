@@ -28,6 +28,45 @@
                 style="height: {{ $getHeight() }}; z-index: 1;"
             ></div>
 
+            @if ($getShowCoordinateInputs())
+                <div class="grid grid-cols-1 gap-4 border-t border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-700 sm:grid-cols-2">
+                    <div>
+                        <label for="{{ $field->getId() }}-latitude" class="fi-fo-field-label-content text-sm font-medium">
+                            {{ __('filament-leaflet-map-picker::leaflet-map-picker.latitude') }}
+                        </label>
+                        <x-filament::input.wrapper class="mt-1">
+                            <x-filament::input
+                                id="{{ $field->getId() }}-latitude"
+                                type="number"
+                                step="any"
+                                inputmode="decimal"
+                                x-model="coordinateInputs.lat"
+                                x-on:change="syncCoordinatesFromInputs()"
+                                :disabled="$field->isDisabled()"
+                                :readonly="$field->isReadOnly()"
+                            />
+                        </x-filament::input.wrapper>
+                    </div>
+
+                    <div>
+                        <label for="{{ $field->getId() }}-longitude" class="fi-fo-field-label-content text-sm font-medium">
+                            {{ __('filament-leaflet-map-picker::leaflet-map-picker.longitude') }}
+                        </label>
+                        <x-filament::input.wrapper class="mt-1">
+                            <x-filament::input
+                                id="{{ $field->getId() }}-longitude"
+                                type="number"
+                                step="any"
+                                inputmode="decimal"
+                                x-model="coordinateInputs.lng"
+                                x-on:change="syncCoordinatesFromInputs()"
+                                :disabled="$field->isDisabled()"
+                                :readonly="$field->isReadOnly()"
+                            />
+                        </x-filament::input.wrapper>
+                    </div>
+                </div>
+            @else
             <div class="p-4 bg-gray-50 border-t border-gray-200 dark:bg-gray-700 dark:border-gray-600" x-show="lat !== null && lng !== null">
                 <div class="flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 mr-2 dark:text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -41,6 +80,7 @@
                     </p>
                 </div>
             </div>
+            @endif
         </div>
 
         <x-filament::modal
@@ -63,6 +103,7 @@
                             id="{{ $modalId }}-search-input"
                             type="text"
                             x-model="searchQuery"
+                            x-on:input.debounce.500ms="submitSearch()"
                             x-on:keydown.enter.prevent="submitSearch()"
                             aria-label="{{ $searchLabel }}"
                             placeholder="{{ __('filament-leaflet-map-picker::leaflet-map-picker.search_placeholder') }}"

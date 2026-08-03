@@ -4,7 +4,7 @@ use Afsakar\LeafletMapPicker\LeafletMapPickerColumn;
 
 it('uses a compact default height and evaluates height closures', function () {
     expect(LeafletMapPickerColumn::make('location')->getHeight())
-        ->toBe('240px')
+        ->toBe('50px')
         ->and(LeafletMapPickerColumn::make('location')->height(fn (): string => '320px')->getHeight())
         ->toBe('320px');
 });

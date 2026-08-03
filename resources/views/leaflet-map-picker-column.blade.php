@@ -6,11 +6,12 @@
     x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('leaflet-map-picker-entry', 'afsakar/filament-leaflet-map-picker') }}"
     x-data="leafletMapPickerEntry({ location: {{ json_encode($getNormalizedState()) }}, config: {{ $getMapConfig() }} })"
     x-ignore
+    class="p-4"
 >
     <div
         x-ref="mapContainer"
-        class="leaflet-map-picker w-full relative"
-        style="height: {{ $getHeight() }}; z-index: 1;"
+        class="leaflet-map-picker relative rounded"
+        style="height: {{ $getHeight() }}; z-index: 1; width: 6rem;"
         role="img"
         aria-label="{{ $getMapAriaLabel() }}"
     ></div>

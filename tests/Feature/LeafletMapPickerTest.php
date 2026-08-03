@@ -3,6 +3,7 @@
 use Afsakar\LeafletMapPicker\LeafletMapPicker;
 use Afsakar\LeafletMapPicker\LeafletMapPickerColumn;
 use Afsakar\LeafletMapPicker\LeafletMapPickerEntry;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Schema;
@@ -163,6 +164,38 @@ it('renders field and entry wiring with canonical coordinates', function () {
         ->toContain('selectedCoordinates.lat !== null ? selectedCoordinates.lat.toFixed(6)');
 });
 
+it('supports optional coordinate inputs inside the picker', function () {
+    view()->share('errors', new ViewErrorBag);
+
+    [$field] = mountTestField(
+        LeafletMapPicker::make('location')
+            ->showCoordinateInputs(),
+    );
+
+    expect($field->getShowCoordinateInputs())->toBeTrue()
+        ->and(LeafletMapPicker::make('location')->getShowCoordinateInputs())->toBeFalse()
+        ->and($field->toHtml())
+        ->toContain('x-model="coordinateInputs.lat"')
+        ->toContain('x-model="coordinateInputs.lng"')
+        ->not->toContain(__('filament-leaflet-map-picker::leaflet-map-picker.selected_locations'));
+});
+
+it('defers Alpine until the async component is loaded', function () {
+    view()->share('errors', new ViewErrorBag);
+
+    [$field] = mountTestField(LeafletMapPicker::make('location'));
+
+    // x-load removes x-ignore and re-inits the tree once the component is registered,
+    // so the pair must stay together: without it Alpine evaluates x-data too early
+    // and the whole component - entangled state included - fails to initialize.
+    expect($field->toHtml())
+        ->toContain('wire:ignore')
+        ->toContain('x-load-src')
+        ->toContain('x-ignore')
+        ->toContain('x-model="searchQuery"')
+        ->toContain('x-on:input.debounce.500ms="submitSearch()"');
+});
+
 it('safely encodes the translated entry map type label', function () {
     view()->share('errors', new ViewErrorBag);
 
@@ -181,6 +214,43 @@ it('safely encodes the translated entry map type label', function () {
     }
 
     expect($html)->toContain("map_type_text: 'Editor\\u0027s map'");
+});
+
+it('dehydrates picker state when sibling coordinate inputs share its location path', function () {
+    $host = new class extends Livewire implements HasForms
+    {
+        use InteractsWithForms;
+
+        public array $data = [];
+
+        public function render(): string
+        {
+            return '<div></div>';
+        }
+    };
+
+    $schema = Schema::make($host)
+        ->statePath('data')
+        ->components([
+            LeafletMapPicker::make('location'),
+            TextInput::make('location.lat')->live(),
+            TextInput::make('location.lng')->live(),
+        ]);
+
+    $schema->getComponents();
+    $schema->fill([
+        'location' => [
+            'lat' => '40.1',
+            'lng' => '29.2',
+        ],
+    ]);
+
+    expect($schema->getState())->toBe([
+        'location' => [
+            'lat' => 40.1,
+            'lng' => 29.2,
+        ],
+    ]);
 });
 
 it('renders map columns with normalized read-only locations and configured heights', function (mixed $state, ?string $location) {
@@ -210,6 +280,8 @@ it('renders map columns with normalized read-only locations and configured heigh
             'showTileControl' => false,
             'interactive' => false,
         ])
+        ->and($config['markerStyle'])->toBe('dot')
+        ->and($config['showAttribution'])->toBeFalse()
         ->and($column->getMapConfig())->toContain('"defaultZoom":13')
         ->toContain('"defaultLocation":{"lat":37.9106,"lng":40.2365}');
 })->with([

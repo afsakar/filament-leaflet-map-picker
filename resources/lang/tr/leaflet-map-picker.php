@@ -3,6 +3,8 @@
 // translations for Afsakar/LeafletMapPicker
 return [
     'selected_locations' => 'Seçilen Konum:',
+    'latitude' => 'Enlem',
+    'longitude' => 'Boylam',
     'map_type' => 'Harita Tipi',
     'column_selected_location' => 'Seçilen konumu gösteren harita: :lat, :lng',
     'column_no_selected_location' => 'Seçili konumu olmayan harita',

@@ -17,7 +17,13 @@ export default function leafletMapPicker({ location, config }) {
         destroyed: false,
         lat: null,
         lng: null,
-        location: null,
+        // Must stay an own property: Alpine only initializes the `$wire.$entangle()`
+        // interceptor for properties present on the x-data object.
+        location,
+        coordinateInputs: {
+            lat: '',
+            lng: '',
+        },
         lastValidCoordinates: null,
         tileLayer: null,
         searchTimeout: null,
@@ -54,8 +60,8 @@ export default function leafletMapPicker({ location, config }) {
 
         init: function () {
             this.destroyed = false;
-            this.location = location
             this.config = { ...this.config, ...config }
+            this.syncCoordinateInputs(this.location);
             this.resetSearchState();
 
             const customTiles = Array.isArray(this.config.customTiles) ? {} : (this.config.customTiles ?? {});

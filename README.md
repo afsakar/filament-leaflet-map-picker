@@ -149,6 +149,15 @@ LeafletMapPicker::make('location')
     ]);
 ```
 
+To show editable latitude and longitude inputs inside the picker, enable them on the picker and do not add separate sibling inputs for the same `location` state path:
+
+```php
+LeafletMapPicker::make('location')
+    ->showCoordinateInputs();
+```
+
+When enabled, the selected-location summary is hidden. The default is `false`, which keeps the summary visible.
+
 The simplest canonical default location example is:
 
 ```php
@@ -162,6 +171,7 @@ LeafletMapPicker::make('location')
 - Dragging the marker writes `{ lat, lng }` into the field state.
 - Search result selection writes `{ lat, lng }` into the field state.
 - Geolocation writes `{ lat, lng }` into the field state.
+- When `showCoordinateInputs()` is enabled, editing either coordinate updates the map and the canonical field state after the input changes.
 - If the Livewire/Alpine state is changed manually to a valid coordinate object, legacy array, or supported JSON string, the marker and map recenter to match it.
 
 ### Table column
@@ -178,6 +188,8 @@ public function table(Table $table): Table
     ]);
 }
 ```
+
+The column renders a compact thumbnail: it marks the location with a small dot instead of a pin and hides the attribution control, which would otherwise cover most of the tile. The default height is `50px`.
 
 The column is read-only. It accepts the canonical `{ lat, lng }` object and legacy arrays or JSON strings. Null and invalid values use the configured default only for visual map placement; they are not shown as a selected record location and never change the row state.
 

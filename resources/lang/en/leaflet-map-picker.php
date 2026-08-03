@@ -3,6 +3,8 @@
 // translations for Afsakar/LeafletMapPicker
 return [
     'selected_locations' => 'Selected Location:',
+    'latitude' => 'Latitude',
+    'longitude' => 'Longitude',
     'map_type' => 'Map Type',
     'column_selected_location' => 'Map showing selected location: :lat, :lng',
     'column_no_selected_location' => 'Map with no selected location',
