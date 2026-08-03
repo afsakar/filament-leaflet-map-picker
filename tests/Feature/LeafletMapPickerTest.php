@@ -161,3 +161,23 @@ it('renders field and entry wiring with canonical coordinates', function () {
         ->toContain('x-show="selectedCoordinates && selectedCoordinates.lat !== null && selectedCoordinates.lng !== null"')
         ->toContain('selectedCoordinates.lat !== null ? selectedCoordinates.lat.toFixed(6)');
 });
+
+it('safely encodes the translated entry map type label', function () {
+    view()->share('errors', new ViewErrorBag);
+
+    $translator = app('translator');
+    $locale = $translator->getLocale();
+    $namespace = 'filament-leaflet-map-picker';
+    $key = 'leaflet-map-picker.map_type';
+    $original = __("{$namespace}::{$key}");
+    $translator->addLines([$key => "Editor's map"], $locale, $namespace);
+
+    try {
+        [$entry] = mountTestEntry(LeafletMapPickerEntry::make('coordinates')->state([0, 0]));
+        $html = $entry->toHtml();
+    } finally {
+        $translator->addLines([$key => $original], $locale, $namespace);
+    }
+
+    expect($html)->toContain("map_type_text: 'Editor\\u0027s map'");
+});

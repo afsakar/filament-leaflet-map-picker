@@ -84,7 +84,9 @@ test('scheduleModalSearch rate-limits, aborts earlier work, and ignores stale re
     const secondResponse = createDeferred();
     const fetchCalls = [];
 
-    const subject = createSearchSubject();
+    const subject = createSearchSubject({
+        config: { geocoderEndpoint: 'https://geocoder.test/search' },
+    });
 
     scheduleModalSearch(subject, 'first result', {
         now: () => now,
@@ -143,8 +145,8 @@ test('scheduleModalSearch rate-limits, aborts earlier work, and ignores stale re
     await flushPromises();
 
     assert.deepEqual(subject.localSearchResults, [{ display_name: 'new result' }]);
-    assert.equal(fetchCalls[0].url, 'https://nominatim.openstreetmap.org/search?format=json&q=first+result&limit=8');
-    assert.equal(fetchCalls[1].url, 'https://nominatim.openstreetmap.org/search?format=json&q=second+result&limit=8');
+    assert.equal(fetchCalls[0].url, 'https://geocoder.test/search?format=json&q=first+result&limit=8');
+    assert.equal(fetchCalls[1].url, 'https://geocoder.test/search?format=json&q=second+result&limit=8');
     assert.deepEqual(fetchCalls[1].options.headers, { Accept: 'application/json' });
 });
 
@@ -161,7 +163,9 @@ test('scheduleModalSearch reports geocoder failures without surfacing aborts', a
         }
     }
 
-    const subject = createSearchSubject();
+    const subject = createSearchSubject({
+        config: { geocoderEndpoint: 'https://geocoder.test/search' },
+    });
 
     scheduleModalSearch(subject, 'limited query', {
         now: () => 2_000,
@@ -229,28 +233,46 @@ test('scheduleModalSearch resolves proxy endpoints and preserves their query par
     ]);
 });
 
-test('scheduleModalSearch shares public Nominatim pacing across components', () => {
+test('scheduleModalSearch spaces actual public Nominatim dispatches across components', async () => {
     const timers = createTimerHarness();
+    let now = 8_000;
+    const fetchTimes = [];
     const first = createSearchSubject();
     const second = createSearchSubject();
     const runtime = {
-        now: () => 8_000,
+        now: () => now,
         setTimeout: timers.setTimeout,
         clearTimeout: timers.clearTimeout,
-        fetch: async () => ({ ok: true, json: async () => [] }),
+        fetch: async () => {
+            fetchTimes.push(now);
+
+            return { ok: true, json: async () => [] };
+        },
     };
 
     scheduleModalSearch(first, 'first place', runtime);
     scheduleModalSearch(second, 'second place', runtime);
 
-    assert.equal(timers.timers[0].delay, 0);
-    assert.equal(timers.timers[1].delay, 1000);
+    now = 10_000;
+    const firstSearch = timers.timers[0].callback();
+    const secondSearch = timers.timers[1].callback();
+    await flushPromises();
+
+    assert.deepEqual(fetchTimes, [10_000]);
+
+    now = 11_000;
+    timers.timers[2].callback();
+    await Promise.all([firstSearch, secondSearch]);
+
+    assert.deepEqual(fetchTimes, [10_000, 11_000]);
 });
 
 test('scheduleModalSearch ignores a response that resolves after destroy', async () => {
     const timers = createTimerHarness();
     const json = createDeferred();
-    const subject = createSearchSubject();
+    const subject = createSearchSubject({
+        config: { geocoderEndpoint: 'https://geocoder.test/search' },
+    });
 
     scheduleModalSearch(subject, 'late result', {
         now: () => 10_000,

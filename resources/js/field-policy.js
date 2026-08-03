@@ -1,5 +1,22 @@
 const PUBLIC_NOMINATIM_ENDPOINT = 'https://nominatim.openstreetmap.org/search';
-let publicNominatimNextSearchAt = 0;
+let publicNominatimLastDispatchAt = 0;
+let publicNominatimQueue = Promise.resolve();
+
+function waitForPublicNominatim(runtime) {
+    const turn = publicNominatimQueue.then(async () => {
+        const wait = Math.max(0, 1000 - (runtime.now() - publicNominatimLastDispatchAt));
+
+        if (wait > 0) {
+            await new Promise((resolve) => runtime.setTimeout(resolve, wait));
+        }
+
+        publicNominatimLastDispatchAt = runtime.now();
+    });
+
+    publicNominatimQueue = turn.catch(() => {});
+
+    return turn;
+}
 
 export function getGeolocationOptions(config = {}) {
     return {
@@ -58,13 +75,7 @@ export function scheduleModalSearch(component, query, overrides = {}) {
 
     const isPublicNominatim = url?.origin === new URL(PUBLIC_NOMINATIM_ENDPOINT).origin
         && url.pathname === new URL(PUBLIC_NOMINATIM_ENDPOINT).pathname;
-    let wait = Math.max(0, 1000 - (now - (component.lastSearchAt ?? 0)));
-
-    if (isPublicNominatim) {
-        const scheduledAt = Math.max(now, publicNominatimNextSearchAt);
-        wait = scheduledAt - now;
-        publicNominatimNextSearchAt = scheduledAt + 1000;
-    }
+    const wait = Math.max(0, 1000 - (now - (component.lastSearchAt ?? 0)));
 
     component.searchRequestId = requestId;
     component.localSearchResults = [];
@@ -72,6 +83,14 @@ export function scheduleModalSearch(component, query, overrides = {}) {
     component.searchTimeout = runtime.setTimeout(async () => {
         if (component.destroyed || component.searchRequestId !== requestId) {
             return;
+        }
+
+        if (isPublicNominatim) {
+            await waitForPublicNominatim(runtime);
+
+            if (component.destroyed || component.searchRequestId !== requestId) {
+                return;
+            }
         }
 
         component.lastSearchAt = runtime.now();

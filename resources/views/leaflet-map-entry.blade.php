@@ -24,7 +24,7 @@
                 customTiles: {{ json_encode($getCustomTiles()) }},
                 markerIconPath: '{{ $getMarkerIconPath() }}',
                 markerShadowPath: '{{ $getMarkerShadowPath() }}',
-                map_type_text: '{{ __('filament-leaflet-map-picker::leaflet-map-picker.map_type') }}'
+                map_type_text: @js(__('filament-leaflet-map-picker::leaflet-map-picker.map_type'))
             }
         })"
         x-ignore
