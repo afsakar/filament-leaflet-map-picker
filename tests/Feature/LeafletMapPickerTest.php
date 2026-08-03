@@ -1,6 +1,7 @@
 <?php
 
 use Afsakar\LeafletMapPicker\LeafletMapPicker;
+use Afsakar\LeafletMapPicker\LeafletMapPickerColumn;
 use Afsakar\LeafletMapPicker\LeafletMapPickerEntry;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -181,3 +182,34 @@ it('safely encodes the translated entry map type label', function () {
 
     expect($html)->toContain("map_type_text: 'Editor\\u0027s map'");
 });
+
+it('renders map columns with normalized read-only locations and configured heights', function (mixed $state, ?string $location) {
+    $column = LeafletMapPickerColumn::make('location')
+        ->state($state)
+        ->height('320px');
+
+    $html = $column->toHtml();
+    $config = json_decode($column->getMapConfig(), true, 512, JSON_THROW_ON_ERROR);
+
+    expect($html)
+        ->toContain('x-data="leafletMapPickerEntry')
+        ->toContain('style="height: 320px;')
+        ->toContain('x-ref="mapContainer"')
+        ->not->toContain('$wire.$entangle')
+        ->not->toContain('selectedCoordinates')
+        ->toMatch('/location:\s*' . ($location ?? 'null') . '/');
+
+    expect($config)
+        ->toMatchArray([
+            'defaultZoom' => 13,
+            'defaultLocation' => ['lat' => 37.9106, 'lng' => 40.2365],
+            'tileProvider' => 'openstreetmap',
+        ])
+        ->and($column->getMapConfig())->toContain('"defaultZoom":13')
+        ->toContain('"defaultLocation":{"lat":37.9106,"lng":40.2365}');
+})->with([
+    'canonical state' => [['lat' => '40.1', 'lng' => '29.2'], '\\{(?:&quot;|")lat(?:&quot;|"):40.1,(?:&quot;|")lng(?:&quot;|"):29.2\\}'],
+    'legacy state' => [[40.1, 29.2], '\\{(?:&quot;|")lat(?:&quot;|"):40.1,(?:&quot;|")lng(?:&quot;|"):29.2\\}'],
+    'null state' => [null, null],
+    'invalid state' => ['invalid', null],
+]);
