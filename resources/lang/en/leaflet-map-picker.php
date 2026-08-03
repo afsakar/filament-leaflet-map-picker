@@ -4,6 +4,8 @@
 return [
     'selected_locations' => 'Selected Location:',
     'map_type' => 'Map Type',
+    'column_selected_location' => 'Map showing selected location: :lat, :lng',
+    'column_no_selected_location' => 'Map with no selected location',
     'search_location' => 'Search location',
     'search_placeholder' => 'Search location...',
     'no_results' => 'No results found',

@@ -13,18 +13,6 @@ class LeafletMapPickerColumn extends Column
 
     protected string | Closure $height = '240px';
 
-    protected mixed $columnState;
-
-    protected bool $hasColumnState = false;
-
-    public function state(mixed $state): static
-    {
-        $this->columnState = $state;
-        $this->hasColumnState = true;
-
-        return parent::state($state);
-    }
-
     public function height(string | Closure $height): static
     {
         $this->height = $height;
@@ -39,7 +27,26 @@ class LeafletMapPickerColumn extends Column
 
     public function getNormalizedState(): ?array
     {
-        return CoordinateNormalizer::normalize($this->hasColumnState ? $this->evaluate($this->columnState) : $this->getState());
+        return CoordinateNormalizer::normalize($this->getState());
+    }
+
+    public function getMapKey(): string
+    {
+        $recordIdentity = $this->getRecordKey() ?? $this->getName();
+        $stateHash = sha1(json_encode($this->getNormalizedState(), JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION));
+
+        return 'leaflet-map-picker-column-' . rawurlencode($recordIdentity) . '-' . $stateHash;
+    }
+
+    public function getMapAriaLabel(): string
+    {
+        $state = $this->getNormalizedState();
+
+        if ($state === null) {
+            return __('filament-leaflet-map-picker::leaflet-map-picker.column_no_selected_location');
+        }
+
+        return __('filament-leaflet-map-picker::leaflet-map-picker.column_selected_location', $state);
     }
 
     /**
@@ -55,6 +62,7 @@ class LeafletMapPickerColumn extends Column
             ],
             'tileProvider' => 'openstreetmap',
             'showTileControl' => false,
+            'interactive' => false,
             'customMarker' => null,
             'customTiles' => [],
             'markerIconPath' => asset('vendor/leaflet-map-picker/images/marker-icon-2x.png'),

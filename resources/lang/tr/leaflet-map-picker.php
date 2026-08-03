@@ -4,6 +4,8 @@
 return [
     'selected_locations' => 'Seçilen Konum:',
     'map_type' => 'Harita Tipi',
+    'column_selected_location' => 'Seçilen konumu gösteren harita: :lat, :lng',
+    'column_no_selected_location' => 'Seçili konumu olmayan harita',
     'search_location' => 'Konum ara',
     'search_placeholder' => 'Konum ara...',
     'no_results' => 'Sonuç bulunamadı',

@@ -1,5 +1,6 @@
 import * as L from 'leaflet';
 import { normalizeCoordinates, resolveCoordinates } from './coordinates.js';
+import { getEntryInteractionOptions } from './entry-policy.js';
 import defaultTileProviders from './tile-providers.js';
 
 export default function leafletMapPickerEntry({ location, config }) {
@@ -22,6 +23,7 @@ export default function leafletMapPickerEntry({ location, config }) {
             customTiles: [],
             customMarker: null,
             showTileControl: true,
+            interactive: true,
             map_type_text: 'Map Type',
             markerIconPath: '',
             markerShadowPath: '',
@@ -54,15 +56,16 @@ export default function leafletMapPickerEntry({ location, config }) {
 
         initMap: function () {
             const coordinates = this.getCoordinates();
+            const interactionOptions = getEntryInteractionOptions(this.config.interactive);
 
-            this.map = L.map(this.$refs.mapContainer).setView(
+            this.map = L.map(this.$refs.mapContainer, interactionOptions.map).setView(
                 [coordinates.lat, coordinates.lng],
                 this.config.defaultZoom
             );
 
             this.setTileLayer(this.config.tileProvider);
 
-            let markerOptions = { draggable: false };
+            const markerOptions = interactionOptions.marker;
 
             if (this.config.customMarker) {
                 const icon = L.icon(this.config.customMarker);

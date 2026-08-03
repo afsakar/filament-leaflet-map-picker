@@ -184,9 +184,10 @@ it('safely encodes the translated entry map type label', function () {
 });
 
 it('renders map columns with normalized read-only locations and configured heights', function (mixed $state, ?string $location) {
-    $column = LeafletMapPickerColumn::make('location')
-        ->state($state)
-        ->height('320px');
+    $column = mountTestColumn(
+        LeafletMapPickerColumn::make('location')->height('320px'),
+        $state,
+    );
 
     $html = $column->toHtml();
     $config = json_decode($column->getMapConfig(), true, 512, JSON_THROW_ON_ERROR);
@@ -195,6 +196,8 @@ it('renders map columns with normalized read-only locations and configured heigh
         ->toContain('x-data="leafletMapPickerEntry')
         ->toContain('style="height: 320px;')
         ->toContain('x-ref="mapContainer"')
+        ->toContain('wire:key="leaflet-map-picker-column-')
+        ->toContain('role="img"')
         ->not->toContain('$wire.$entangle')
         ->not->toContain('selectedCoordinates')
         ->toMatch('/location:\s*' . ($location ?? 'null') . '/');
@@ -205,6 +208,7 @@ it('renders map columns with normalized read-only locations and configured heigh
             'defaultLocation' => ['lat' => 37.9106, 'lng' => 40.2365],
             'tileProvider' => 'openstreetmap',
             'showTileControl' => false,
+            'interactive' => false,
         ])
         ->and($column->getMapConfig())->toContain('"defaultZoom":13')
         ->toContain('"defaultLocation":{"lat":37.9106,"lng":40.2365}');
@@ -214,3 +218,11 @@ it('renders map columns with normalized read-only locations and configured heigh
     'null state' => [null, null],
     'invalid state' => ['invalid', null],
 ]);
+
+it('labels map columns according to whether a location is selected', function () {
+    $selected = mountTestColumn(LeafletMapPickerColumn::make('location'), [40.1, 29.2])->toHtml();
+    $empty = mountTestColumn(LeafletMapPickerColumn::make('location'), null)->toHtml();
+
+    expect($selected)->toContain('aria-label="Map showing selected location: 40.1, 29.2"')
+        ->and($empty)->toContain('aria-label="Map with no selected location"');
+});
