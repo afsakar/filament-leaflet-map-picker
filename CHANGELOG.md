@@ -2,6 +2,15 @@
 
 All notable changes to `filament-leaflet-map-picker` will be documented in this file.
 
+## v3.0.2 - 2026-08-24
+
+### What's Changed
+
+* build(deps): bump actions/checkout from 4.4.0 to 7.0.1 by @dependabot[bot] in https://github.com/afsakar/filament-leaflet-map-picker/pull/24
+* build(deps): bump actions/setup-node from 4.4.0 to 7.0.0 by @dependabot[bot] in https://github.com/afsakar/filament-leaflet-map-picker/pull/23
+
+**Full Changelog**: https://github.com/afsakar/filament-leaflet-map-picker/compare/v3.0.1...v3.0.2
+
 ## v3.0.1 - 2026-08-24
 
 ### What's Changed
