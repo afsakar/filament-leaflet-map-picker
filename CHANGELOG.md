@@ -2,6 +2,19 @@
 
 All notable changes to `filament-leaflet-map-picker` will be documented in this file.
 
+## v3.0.1 - 2026-08-24
+
+### What's Changed
+
+* V4 by @afsakar in https://github.com/afsakar/filament-leaflet-map-picker/pull/19
+* chore(ci): harden supply-chain security by @afsakar-hermes in https://github.com/afsakar/filament-leaflet-map-picker/pull/22
+
+### New Contributors
+
+* @afsakar-hermes made their first contribution in https://github.com/afsakar/filament-leaflet-map-picker/pull/22
+
+**Full Changelog**: https://github.com/afsakar/filament-leaflet-map-picker/compare/v3.0.0...v3.0.1
+
 ## v4: Filament 4/5 support, coordinate inputs, entangled state fix - 2026-08-03
 
 ### History note
